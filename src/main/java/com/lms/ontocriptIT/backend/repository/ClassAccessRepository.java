@@ -29,5 +29,7 @@ public interface ClassAccessRepository extends JpaRepository<ClassAccess, Long> 
     boolean hasAnyActiveAccess(Long studentId);
 
     int countByStudentId(Long id);
+
+
 }
 

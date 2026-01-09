@@ -42,4 +42,11 @@ public class AdminController {
     public ResponseEntity<?> getStudentById(@PathVariable String studentId) {
         return adminService.getStudentById(studentId);
     }
+
+    @GetMapping("/registrations/searchApprovedStudentById/{studentId}")
+    public ResponseEntity<?> searchApprovedStudentById(@PathVariable String studentId){
+        return adminService.searchApprovedStudentById(studentId);
+
+    }
+
 }

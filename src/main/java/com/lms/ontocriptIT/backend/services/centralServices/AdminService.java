@@ -12,4 +12,7 @@ public interface AdminService {
     ResponseEntity<?> getApprovedStudents(Pageable pageable);
 
     ResponseEntity<?> getStudentById(String studentId);
+
+    ResponseEntity<?> searchApprovedStudentById(String studentId);
+
 }

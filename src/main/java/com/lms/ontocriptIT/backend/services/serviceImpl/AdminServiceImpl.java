@@ -7,8 +7,7 @@ import com.lms.ontocriptIT.backend.entity.AccountStatus;
 import com.lms.ontocriptIT.backend.entity.RequestStatus;
 import com.lms.ontocriptIT.backend.entity.Role;
 import com.lms.ontocriptIT.backend.entity.User;
-import com.lms.ontocriptIT.backend.repository.RegistrationRequestRepository;
-import com.lms.ontocriptIT.backend.repository.UserRepository;
+import com.lms.ontocriptIT.backend.repository.*;
 import com.lms.ontocriptIT.backend.services.centralServices.AdminService;
 import com.lms.ontocriptIT.backend.services.centralServices.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +35,7 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+
 
     @Override
     public ResponseEntity<?> getPendingRegistrations() {
@@ -297,4 +297,33 @@ public class AdminServiceImpl implements AdminService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    @Override
+    public ResponseEntity<?> searchApprovedStudentById(String studentId){
+
+        try {
+            List<User> users = userRepository
+                    .findByStudentIdContainingAndRoleAndStatus(
+                            studentId, Role.STUDENT, AccountStatus.ACTIVE);
+
+            List<StudentDTO> studentDTOs = users.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", studentDTOs);
+            response.put("count", studentDTOs.size());
+            response.put("message", "Search completed successfully");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to search students: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
 }

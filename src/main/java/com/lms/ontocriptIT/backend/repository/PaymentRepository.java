@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -57,4 +58,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("month") int month
     );
     int countByStudentId(Long id);
+
+
 }
