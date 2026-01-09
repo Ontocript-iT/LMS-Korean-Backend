@@ -21,5 +21,4 @@ public interface VideoWatchLogRepository extends JpaRepository<VideoWatchLog, Lo
     List<Object[]> findTopVideos(Pageable pageable);
 
 
-
 }

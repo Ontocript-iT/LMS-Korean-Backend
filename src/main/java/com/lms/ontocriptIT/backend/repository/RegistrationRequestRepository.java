@@ -1,6 +1,7 @@
 package com.lms.ontocriptIT.backend.repository;
 
 import com.lms.ontocriptIT.backend.auth.RegistrationRequest;
+import com.lms.ontocriptIT.backend.entity.AccountStatus;
 import com.lms.ontocriptIT.backend.entity.RequestStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -15,4 +16,6 @@ public interface RegistrationRequestRepository extends JpaRepository<Registratio
     Optional<RegistrationRequest> findByIdNumber(String idNumber);
     boolean existsByEmail(String email);
     boolean existsByIdNumber(String idNumber);
+
+    long countByStatus(RequestStatus pending);
 }
