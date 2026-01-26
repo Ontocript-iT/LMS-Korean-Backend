@@ -31,5 +31,6 @@ public interface ClassAccessRepository extends JpaRepository<ClassAccess, Long> 
     int countByStudentId(Long id);
 
 
+    List<ClassAccess> findByStudentIdAndHasAccessTrue(Long studentId);
 }
 

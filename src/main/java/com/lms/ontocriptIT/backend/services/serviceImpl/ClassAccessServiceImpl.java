@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -42,116 +43,80 @@ public class ClassAccessServiceImpl implements ClassAccessService {
             User admin = userRepository.findById(adminId)
                     .orElseThrow(() -> new RuntimeException("Admin not found"));
 
-            // Check if access already exists for this class
-            ClassAccess existingAccess = classAccessRepository
+            ClassAccess classAccess = classAccessRepository
                     .findByStudentAndClassName(student, dto.getClassName())
-                    .orElse(null);
+                    .orElse(new ClassAccess());
 
-            if (existingAccess != null) {
-                // Update existing access
-                existingAccess.setHasAccess(dto.isHasAccess());
-                existingAccess.setClassLink(dto.getClassLink());
-                existingAccess.setNotes(dto.getNotes());
+            boolean isNew = (classAccess.getId() == null);
 
-                if (dto.isHasAccess()) {
-                    existingAccess.setAccessGrantedDate(LocalDateTime.now());
-                    existingAccess.setGrantedBy(admin);
-                    existingAccess.setAccessRevokedDate(null);
-                    existingAccess.setRevokedBy(null);
-                }
+            classAccess.setStudent(student);
+            classAccess.setClassName(dto.getClassName());
+            classAccess.setClassLink(dto.getClassLink());
+            classAccess.setZoomClassId(dto.getZoomClassId());
+            classAccess.setNotes(dto.getNotes());
+            classAccess.setHasAccess(dto.isHasAccess());
 
-                ClassAccess savedAccess = classAccessRepository.save(existingAccess);
-
-                HashMap<String, Object> response = new HashMap<>();
-                response.put("accessId", savedAccess.getId());
-                response.put("studentId", student.getId());
-                response.put("studentName", student.getFirstName() + " " + student.getLastName());
-                response.put("className", savedAccess.getClassName());
-                response.put("classLink", savedAccess.getClassLink());
-                response.put("hasAccess", savedAccess.isHasAccess());
-                response.put("grantedBy", admin.getFirstName() + " " + admin.getLastName());
-                response.put("message", "Class access updated successfully");
-                response.put("status", HttpStatus.OK.value());
-
-                return ResponseEntity.ok(response);
+            if (dto.isHasAccess()) {
+                classAccess.setAccessGrantedDate(LocalDateTime.now());
+                classAccess.setGrantedBy(admin);
+                classAccess.setAccessRevokedDate(null);
+            } else {
+                classAccess.setAccessRevokedDate(LocalDateTime.now());
+                // Optional: classAccess.setRevokedBy(admin);
             }
-
-            // Create new access
-            ClassAccess classAccess = ClassAccess.builder()
-                    .student(student)
-                    .classLink(dto.getClassLink())
-                    .className(dto.getClassName())
-                    .zoomClassId(dto.getZoomClassId())
-                    .hasAccess(dto.isHasAccess())
-                    .accessGrantedDate(dto.isHasAccess() ? LocalDateTime.now() : null)
-                    .grantedBy(dto.isHasAccess() ? admin : null)
-                    .notes(dto.getNotes())
-                    .build();
-
 
             ClassAccess savedAccess = classAccessRepository.save(classAccess);
 
-            List<Video> activeVideos = videoRepository.findAllActiveVideosOrderByCreatedDesc();
+            syncVideoAccess(student, admin, dto.isHasAccess(), dto.getClassName());
 
-            for (Video video : activeVideos) {
-                // Check if access already exists for this specific video and student
-                VideoAccess existingVideoAccess = videoAccessRepository
-                        .findByStudentAndVideo(student, video)
-                        .orElse(null);
-
-                if (existingVideoAccess != null) {
-                    // Update logic
-                    existingVideoAccess.setHasAccess(dto.isHasAccess());
-                    if (dto.isHasAccess()) {
-                        existingVideoAccess.setAccessGrantedDate(LocalDateTime.now());
-                        existingVideoAccess.setGrantedBy(admin);
-                        existingVideoAccess.setAccessRevokedDate(null);
-                        existingVideoAccess.setRevokedBy(null);
-                    }
-                    videoAccessRepository.save(existingVideoAccess);
-                } else {
-                    // Create new logic
-                    VideoAccess newVideoAccess = VideoAccess.builder()
-                            .student(student)
-                            .video(video)
-                            .hasAccess(dto.isHasAccess())
-                            .maxAttempts(2) // Default as per your requirement
-                            .attemptsUsed(0)
-                            .accessGrantedDate(dto.isHasAccess() ? LocalDateTime.now() : null)
-                            .grantedBy(dto.isHasAccess() ? admin : null)
-                            .notes("Automatically granted via class access: " + dto.getClassName())
-                            .build();
-                    videoAccessRepository.save(newVideoAccess);
-                }
-            }
-
-            HashMap<String, Object> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("accessId", savedAccess.getId());
             response.put("studentId", student.getId());
             response.put("studentName", student.getFirstName() + " " + student.getLastName());
             response.put("className", savedAccess.getClassName());
-            response.put("classLink", savedAccess.getClassLink());
             response.put("hasAccess", savedAccess.isHasAccess());
-            response.put("grantedBy", admin.getFirstName() + " " + admin.getLastName());
-            response.put("message", "Class access granted successfully");
-            response.put("status", HttpStatus.CREATED.value());
+            response.put("message", isNew ? "Access created" : "Access updated");
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return ResponseEntity.status(isNew ? HttpStatus.CREATED : HttpStatus.OK).body(response);
 
         } catch (RuntimeException e) {
-            HashMap<String, Object> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            response.put("status", HttpStatus.NOT_FOUND.value());
-
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-
+            return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception e) {
-            HashMap<String, Object> response = new HashMap<>();
-            response.put("message", "Failed to grant class access: " + e.getMessage());
-            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return buildErrorResponse("Internal error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private void syncVideoAccess(User student, User admin, boolean hasAccess, String className) {
+        List<Video> activeVideos = videoRepository.findAllActiveVideosOrderByCreatedDesc();
+
+        for (Video video : activeVideos) {
+            VideoAccess videoAccess = videoAccessRepository
+                    .findByStudentAndVideo(student, video)
+                    .orElse(VideoAccess.builder()
+                            .student(student)
+                            .video(video)
+                            .maxAttempts(2)
+                            .attemptsUsed(0)
+                            .hasAccess(true).build());
+
+            videoAccess.setHasAccess(hasAccess);
+            if (hasAccess) {
+                videoAccess.setAccessGrantedDate(LocalDateTime.now());
+                videoAccess.setGrantedBy(admin);
+                videoAccess.setAccessRevokedDate(null);
+                videoAccess.setNotes("Granted via class: " + className);
+            } else {
+                videoAccess.setAccessRevokedDate(LocalDateTime.now());
+            }
+            videoAccessRepository.save(videoAccess);
+        }
+    }
+
+    private ResponseEntity<?> buildErrorResponse(String message, HttpStatus status) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", message);
+        response.put("status", status.value());
+        return ResponseEntity.status(status).body(response);
     }
 
     @Override
@@ -204,7 +169,7 @@ public class ClassAccessServiceImpl implements ClassAccessService {
     @Override
     public ResponseEntity<?> getStudentClassAccesses(Long studentId) {
         try {
-            List<ClassAccess> accesses = classAccessRepository.findByStudentId(studentId);
+            List<ClassAccess> accesses = classAccessRepository.findByStudentIdAndHasAccessTrue(studentId);
 
             List<ClassAccessResponseDTO> responseDTOs = accesses.stream()
                     .map(this::convertToResponseDTO)

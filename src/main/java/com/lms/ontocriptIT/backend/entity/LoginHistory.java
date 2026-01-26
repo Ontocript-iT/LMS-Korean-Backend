@@ -39,10 +39,11 @@ public class LoginHistory {
     @Column(nullable = false)
     private boolean loginSuccessful;
 
+    @Column(length = 1000)
     private String failureReason;
 
 
-    @Column(name = "device_fingerprint", nullable = false, unique = true)
+    @Column(name = "device_fingerprint", nullable = false )
     private String deviceFingerprint; // Unique device identifier
 
     @Column(name = "is_current_session", nullable = false, columnDefinition = "boolean default false")

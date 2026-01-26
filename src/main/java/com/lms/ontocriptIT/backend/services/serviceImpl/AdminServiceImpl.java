@@ -8,6 +8,7 @@ import com.lms.ontocriptIT.backend.entity.RequestStatus;
 import com.lms.ontocriptIT.backend.entity.Role;
 import com.lms.ontocriptIT.backend.entity.User;
 import com.lms.ontocriptIT.backend.repository.*;
+import com.lms.ontocriptIT.backend.services.SmsService;
 import com.lms.ontocriptIT.backend.services.centralServices.AdminService;
 import com.lms.ontocriptIT.backend.services.centralServices.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,8 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+
+    private final SmsService smsService;
 
 
     @Override
@@ -112,6 +115,21 @@ public class AdminServiceImpl implements AdminService {
             request.setStatus(RequestStatus.APPROVED);
             request.setReviewedAt(LocalDateTime.now());
             registrationRequestRepository.save(request);
+
+            try {
+                String mobile = user.getPhoneNumber1();
+                if (mobile != null && !mobile.isEmpty()) {
+                    // Construct message with Login Credentials
+                    String smsMessage = String.format(
+                            "ලියාපදිංචිය අනුමත කරන ලදී! ඔබගේ පරිශීලක නාමය (Username) සහ තාවකාලික මුරපදය (Temporary Password) ඔබගේ විද්\u200Dයුත් තැපෑලට (Email) එවා ඇත. කරුණාකර එය භාවිතා කර පද්ධතියට ඇතුළු වී වහාම ඔබගේ මුරපදය වෙනස් කරන්න. — Kandy EPS TOPIK"
+                    );
+
+                    // Send in background thread
+                    new Thread(() -> smsService.sendSms(mobile, smsMessage)).start();
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to send approval SMS: " + e.getMessage());
+            }
 
             // Send email
             try {
