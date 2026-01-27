@@ -18,8 +18,8 @@ public class AdminController {
     private final AdminService adminService;
 
     @GetMapping("/registrations/pending")
-    public ResponseEntity<?> getPendingRegistrations() {
-        return adminService.getPendingRegistrations();
+    public ResponseEntity<?> getPendingRegistrations(@PageableDefault(size = 10, page = 0, sort = "id") Pageable pageable) {
+        return adminService.getPendingRegistrations(pageable);
     }
 
     @PostMapping("/registrations/approve")
@@ -42,4 +42,11 @@ public class AdminController {
     public ResponseEntity<?> getStudentById(@PathVariable String studentId) {
         return adminService.getStudentById(studentId);
     }
+
+    @GetMapping("/registrations/searchApprovedStudentById/{studentId}")
+    public ResponseEntity<?> searchApprovedStudentById(@PathVariable String studentId){
+        return adminService.searchApprovedStudentById(studentId);
+
+    }
+
 }

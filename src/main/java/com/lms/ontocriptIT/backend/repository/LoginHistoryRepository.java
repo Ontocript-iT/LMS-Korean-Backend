@@ -49,8 +49,6 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
     @Query("UPDATE LoginHistory lh SET lh.isCurrentSession = false WHERE lh.deviceFingerprint = :fingerprint")
     int invalidateSessionByFingerprint(@Param("fingerprint") String fingerprint);
 
-    @Modifying
-    @Transactional
-    @Query("UPDATE LoginHistory lh SET lh.isCurrentSession = true WHERE lh.id = :sessionId")
-    int activateCurrentSession(@Param("sessionId") Long sessionId);
+    Optional<LoginHistory> findTopByUserIdAndLoginSuccessfulOrderByLoginTimeDesc(Long userId, boolean loginSuccessful);
+
 }

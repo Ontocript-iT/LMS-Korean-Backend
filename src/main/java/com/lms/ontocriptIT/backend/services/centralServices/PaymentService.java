@@ -14,5 +14,5 @@ public interface PaymentService {
     ResponseEntity<?> getStudentPaymentSummary(Long studentId);
     ResponseEntity<?> deletePayment(Long paymentId);
 
-    ResponseEntity<?> getThisMonthPaymentCompleterStudents();
+    ResponseEntity<?> getThisMonthPaymentCompleterStudents( Integer year, Integer month,int page,int size);
 }

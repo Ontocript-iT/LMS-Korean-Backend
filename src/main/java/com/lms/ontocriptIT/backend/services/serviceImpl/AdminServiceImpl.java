@@ -7,8 +7,8 @@ import com.lms.ontocriptIT.backend.entity.AccountStatus;
 import com.lms.ontocriptIT.backend.entity.RequestStatus;
 import com.lms.ontocriptIT.backend.entity.Role;
 import com.lms.ontocriptIT.backend.entity.User;
-import com.lms.ontocriptIT.backend.repository.RegistrationRequestRepository;
-import com.lms.ontocriptIT.backend.repository.UserRepository;
+import com.lms.ontocriptIT.backend.repository.*;
+import com.lms.ontocriptIT.backend.services.SmsService;
 import com.lms.ontocriptIT.backend.services.centralServices.AdminService;
 import com.lms.ontocriptIT.backend.services.centralServices.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -37,15 +37,23 @@ public class AdminServiceImpl implements AdminService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    private final SmsService smsService;
+
+
     @Override
-    public ResponseEntity<?> getPendingRegistrations() {
+    public ResponseEntity<?> getPendingRegistrations(Pageable pageable) {
         try {
-            List<RegistrationRequest> pendingRequests =
-                    registrationRequestRepository.findByStatus(RequestStatus.PENDING);
+            Page<RegistrationRequest> pendingRequests =
+                    registrationRequestRepository.findByStatus(RequestStatus.PENDING, pageable);
 
             HashMap<String, Object> response = new HashMap<>();
-            response.put("data", pendingRequests);
-            response.put("count", pendingRequests.size());
+
+            response.put("data", pendingRequests.getContent());
+
+            response.put("currentPage", pendingRequests.getNumber());
+            response.put("totalItems", pendingRequests.getTotalElements()); // Important: Total DB count
+            response.put("totalPages", pendingRequests.getTotalPages());
+
             response.put("message", "Pending registrations retrieved successfully");
             response.put("status", HttpStatus.OK.value());
 
@@ -112,6 +120,21 @@ public class AdminServiceImpl implements AdminService {
             request.setStatus(RequestStatus.APPROVED);
             request.setReviewedAt(LocalDateTime.now());
             registrationRequestRepository.save(request);
+
+            try {
+                String mobile = user.getPhoneNumber1();
+                if (mobile != null && !mobile.isEmpty()) {
+                    // Construct message with Login Credentials
+                    String smsMessage = String.format(
+                            "ලියාපදිංචිය අනුමත කරන ලදී! ඔබගේ පරිශීලක නාමය (Username) සහ තාවකාලික මුරපදය (Temporary Password) ඔබගේ විද්\u200Dයුත් තැපෑලට (Email) එවා ඇත. කරුණාකර එය භාවිතා කර පද්ධතියට ඇතුළු වී වහාම ඔබගේ මුරපදය වෙනස් කරන්න. — Kandy EPS TOPIK"
+                    );
+
+                    // Send in background thread
+                    new Thread(() -> smsService.sendSms(mobile, smsMessage)).start();
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to send approval SMS: " + e.getMessage());
+            }
 
             // Send email
             try {
@@ -297,4 +320,33 @@ public class AdminServiceImpl implements AdminService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    @Override
+    public ResponseEntity<?> searchApprovedStudentById(String studentId){
+
+        try {
+            List<User> users = userRepository
+                    .findByStudentIdContainingAndRoleAndStatus(
+                            studentId, Role.STUDENT, AccountStatus.ACTIVE);
+
+            List<StudentDTO> studentDTOs = users.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", studentDTOs);
+            response.put("count", studentDTOs.size());
+            response.put("message", "Search completed successfully");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to search students: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
 }

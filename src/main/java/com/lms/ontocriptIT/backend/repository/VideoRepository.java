@@ -13,17 +13,11 @@ import java.util.Optional;
 @Repository
 public interface VideoRepository extends JpaRepository<Video, Long> {
 
-    Optional<Video> findByBunnyVideoId(String bunnyVideoId);
-
-    List<Video> findByIsActiveTrue();
-
-    List<Video> findByUploadMonth(YearMonth uploadMonth);
-
-    List<Video> findByStatus(VideoStatus status);
 
     @Query("SELECT COUNT(v) FROM Video v WHERE v.uploadMonth = :month AND v.isActive = true")
     long countActiveVideosByMonth(YearMonth month);
 
     @Query("SELECT v FROM Video v WHERE v.isActive = true ORDER BY v.createdAt DESC")
     List<Video> findAllActiveVideosOrderByCreatedDesc();
+
 }

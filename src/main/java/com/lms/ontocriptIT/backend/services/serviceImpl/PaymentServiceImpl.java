@@ -8,6 +8,8 @@ import com.lms.ontocriptIT.backend.repository.*;
 import com.lms.ontocriptIT.backend.services.centralServices.PaymentService;
 import com.lms.ontocriptIT.backend.utils.PaymentIdGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -385,17 +387,21 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public ResponseEntity<?> getThisMonthPaymentCompleterStudents(){
+    public ResponseEntity<?> getThisMonthPaymentCompleterStudents(Integer year, Integer month,int page,int size){
         try {
-            YearMonth currentMonth = YearMonth.now();
-            Year currentYear = Year.now();
-            System.out.println(currentMonth.getMonthValue() + " - " + currentYear.getValue());
-            List<User> students = paymentRepository.findStudentsWithVerifiedPaymentForMonth(
-                    currentYear.getValue(),    // Pass Year first
-                    currentMonth.getMonthValue() // Pass Month second
-            );            System.out.println("s;-"+students.size());
+            YearMonth targetYearMonth;
+            if (year != null && month != null) {
+                targetYearMonth = YearMonth.of(year, month);
+            } else {
+                targetYearMonth = YearMonth.now();
+            }
+            Pageable pageable = Pageable.ofSize(size).withPage(page);
+            Page<User> studentsPage = paymentRepository.findStudentsWithVerifiedPaymentForMonth(
+                    targetYearMonth, pageable
+            );
 
-            List<com.lms.ontocriptIT.backend.dtos.StudentDTO> studentDTOs = students.stream()
+
+            List<com.lms.ontocriptIT.backend.dtos.StudentDTO> studentDTOs = studentsPage.getContent().stream()
                     .map(student -> com.lms.ontocriptIT.backend.dtos.StudentDTO.builder()
                             .id(student.getId())
                             .studentId(student.getStudentId())
@@ -415,8 +421,9 @@ public class PaymentServiceImpl implements PaymentService {
             HashMap<String, Object> response = new HashMap<>();
             response.put("data", studentDTOs);
             response.put("count", studentDTOs.size());
-            response.put("month", currentMonth.toString());
-            response.put("message", "Students who completed payments for " + currentMonth.toString() + " retrieved successfully");
+            response.put("totalItems", studentsPage.getTotalElements());
+            response.put("currentPage", studentsPage.getNumber());
+            response.put("totalPages", studentsPage.getTotalPages());
             response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);

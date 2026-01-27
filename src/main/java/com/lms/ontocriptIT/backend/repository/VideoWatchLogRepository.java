@@ -1,6 +1,7 @@
 package com.lms.ontocriptIT.backend.repository;
 
 import com.lms.ontocriptIT.backend.entity.VideoWatchLog;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -15,4 +16,9 @@ public interface VideoWatchLogRepository extends JpaRepository<VideoWatchLog, Lo
 
     @Query("SELECT vwl FROM VideoWatchLog vwl WHERE vwl.student.id = :studentId ORDER BY vwl.createdAt DESC")
     List<VideoWatchLog> findByStudentId(Long studentId);
+
+    @Query("SELECT v.title as title, COUNT(log.id) as count FROM VideoWatchLog log JOIN log.video v GROUP BY v.id ORDER BY count DESC")
+    List<Object[]> findTopVideos(Pageable pageable);
+
+
 }

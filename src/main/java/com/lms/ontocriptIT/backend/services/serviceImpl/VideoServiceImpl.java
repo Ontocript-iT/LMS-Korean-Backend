@@ -291,6 +291,7 @@ public class VideoServiceImpl implements VideoService {
             if (existingAccess != null) {
                 // Update existing access
                 existingAccess.setHasAccess(dto.isHasAccess());
+                existingAccess.setAttemptsUsed(0);
                 existingAccess.setMaxAttempts(dto.getMaxAttempts() != null ? dto.getMaxAttempts() : 2);
                 existingAccess.setNotes(dto.getNotes());
 

@@ -1,5 +1,6 @@
 package com.lms.ontocriptIT.backend.auth;
 
+import com.lms.ontocriptIT.backend.entity.AccountStatus;
 import com.lms.ontocriptIT.backend.entity.RequestStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -53,4 +54,5 @@ public class RegistrationRequest {
         submittedAt = LocalDateTime.now();
         status = RequestStatus.PENDING;
     }
+
 }

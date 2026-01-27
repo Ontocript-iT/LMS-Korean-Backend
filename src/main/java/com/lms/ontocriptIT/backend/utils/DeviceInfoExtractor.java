@@ -42,7 +42,10 @@ public class DeviceInfoExtractor {
 
     private String generateDeviceFingerprint(String ipAddress, String userAgent) {
         try {
-            String fingerprintData = ipAddress + "|" + userAgent + "|" + System.currentTimeMillis();
+            // REMOVED: + "|" + System.currentTimeMillis()
+            // Now only mixing IP and UserAgent.
+            // Note: If the user's IP changes (e.g. WiFi to Data), this will still trigger a new fingerprint.
+            String fingerprintData = ipAddress + "|" + userAgent;
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(fingerprintData.getBytes());

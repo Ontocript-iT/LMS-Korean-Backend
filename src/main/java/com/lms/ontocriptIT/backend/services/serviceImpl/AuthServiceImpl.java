@@ -9,6 +9,7 @@ import com.lms.ontocriptIT.backend.repository.LoginHistoryRepository;
 import com.lms.ontocriptIT.backend.repository.RegistrationRequestRepository;
 import com.lms.ontocriptIT.backend.repository.UserRepository;
 import com.lms.ontocriptIT.backend.security.JwtService;
+import com.lms.ontocriptIT.backend.services.SmsService;
 import com.lms.ontocriptIT.backend.services.centralServices.AuthService;
 import com.lms.ontocriptIT.backend.services.centralServices.WhatsAppService;
 import com.lms.ontocriptIT.backend.utils.DeviceInfoExtractor;
@@ -37,6 +38,8 @@ public class AuthServiceImpl implements AuthService {
     private final RegistrationRequestRepository registrationRequestRepository;
     private final UserRepository userRepository;
     private final LoginHistoryRepository loginHistoryRepository;
+
+    private final SmsService smsService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -50,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
             // Check for duplicates
             if (registrationRequestRepository.existsByEmail(dto.getEmail())) {
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "Email already registered");
+                response.put("message", "මෙම Email ලිපිනය දැනටමත් ලියාපදිංචි කර ඇත.");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -58,7 +61,15 @@ public class AuthServiceImpl implements AuthService {
 
             if (registrationRequestRepository.existsByIdNumber(dto.getIdNumber())) {
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "ID number already registered");
+                response.put("message", "මෙම ID අංකය දැනටමත් ලියාපදිංචි කර ඇත.");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+            if (userRepository.existsByPhoneNumber1(dto.getPhoneNumber1())) {
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("message", "ඇතුළත් කළ දුරකථන අංක 1 දැනටමත් පද්ධතියේ පවතී.");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -66,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
 
             if (userRepository.existsByEmail(dto.getEmail())) {
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "Email already exists in system");
+                response.put("message", "මෙම Email ලිපිනය දැනටමත් ලියාපදිංචි කර ඇත.");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -85,19 +96,37 @@ public class AuthServiceImpl implements AuthService {
 
             RegistrationRequest savedRequest = registrationRequestRepository.save(request);
 
-            // Send WhatsApp notification to teacher
             try {
-                String studentFullName = savedRequest.getFirstName() + " " + savedRequest.getLastName();
-                whatsAppService.sendNewStudentRegistrationNotification(
-                        studentFullName,
-                        savedRequest.getEmail(),
-                        savedRequest.getPhoneNumber1(),
-                        savedRequest.getIdNumber()
+                String teacherMobile = "94705753003";
+                String studentMobile = savedRequest.getPhoneNumber1();
+
+                String studentName = savedRequest.getFirstName() + " " + savedRequest.getLastName();
+                String district = savedRequest.getDistrict();
+
+                String teacherMsg = String.format(
+                        "New Registration Alert:නම: %s දිස්ත්\u200Dරික්කය: %s දුරකථන: %s අනුමත කිරීම සඳහා කරුණාකර ADMIN (Portal) වෙත පිවිසෙන්න.",
+                        studentName, district, studentMobile
                 );
+
+                // Message for Student (Your specific text)
+                String studentMsg = "ඔබ KANDY EPS TOPIK සමඟ එක් වීම පිළිබඳව අප සතුටු වෙමු. කරුණාකර ඔබගේ ලියාපදිංචිය තහවුරු කරන තෙක් රැඳී සිටින්න. පැය 24ක් ඇතුළත එය තහවුරු කර ඒ පිළිබඳව SMS පණිවිඩයක් ඔබට ලැබෙනු ඇත. — KANDY EPS TOPIK";
+
+                new Thread(() -> {
+                    // Send to Teacher
+                    if (teacherMobile != null && !teacherMobile.isEmpty()) {
+                        smsService.sendSms(teacherMobile, teacherMsg);
+                    }
+
+                    // Send to Student
+                    if (studentMobile != null && !studentMobile.isEmpty()) {
+                        smsService.sendSms(studentMobile, studentMsg);
+                    }
+                }).start();
+
             } catch (Exception e) {
-                System.err.println("WhatsApp notification failed: " + e.getMessage());
-                // Continue even if WhatsApp fails
+                System.err.println("SMS notification failed: " + e.getMessage());
             }
+
 
             HashMap<String, Object> response = new HashMap<>();
             response.put("requestId", savedRequest.getId());
@@ -118,113 +147,89 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public ResponseEntity<?> login (LoginRequestDTO dto, HttpServletRequest request) {
+    public ResponseEntity<?> login(LoginRequestDTO dto, HttpServletRequest request) {
         User user = null;
         boolean loginSuccessful = false;
         String failureReason = null;
 
         try {
-            // Find user by identifier
             user = findUserByIdentifier(dto.getUsername())
                     .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
-            // Extract device information FIRST
             DeviceInfoDTO deviceInfo = deviceInfoExtractor.extractDeviceInfo(request);
 
-            // FIRST: Check if user already has active session on different device
-            LoginHistory activeSession = loginHistoryRepository.findCurrentSessionByUserId(user.getId()).orElse(null);
-
-            if (activeSession != null && !activeSession.getDeviceFingerprint().equals(deviceInfo.getDeviceFingerprint())) {
-                // Invalidate previous session
-                loginHistoryRepository.invalidateCurrentSessionsByUserId(user.getId());
-
-                HashMap<String, Object> response = new HashMap<>();
-                response.put("deviceAuthorized", false);
-                response.put("activeSessionInvalidated", true);
-                response.put("previousDevice", activeSession.getDeviceType() + " - " + activeSession.getBrowser());
-                response.put("message", "Previous session invalidated. You can now login from this device.");
-                response.put("status", HttpStatus.OK.value());
-
-                return ResponseEntity.ok(response);
-            }
-
-            // Authenticate
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPassword())
             );
 
             if (authentication.isAuthenticated()) {
                 loginSuccessful = true;
+                LoginHistory currentSessionRecord; // This will hold the record we save/update
 
-                // Mark this as current session
-                LoginHistory newSession = LoginHistory.builder()
-                        .user(user)
-                        .loginTime(LocalDateTime.now())
-                        .ipAddress(deviceInfo.getIpAddress())
-                        .deviceType(deviceInfo.getDeviceType())
-                        .browser(deviceInfo.getBrowser())
-                        .operatingSystem(deviceInfo.getOperatingSystem())
-                        .userAgent(deviceInfo.getUserAgent())
-                        .deviceFingerprint(deviceInfo.getDeviceFingerprint())
-                        .isCurrentSession(true)
-                        .loginSuccessful(true)
-                        .build();
+                LoginHistory activeSession = loginHistoryRepository.findCurrentSessionByUserId(user.getId()).orElse(null);
 
-                loginHistoryRepository.save(newSession);
+                // Active Session Exists on SAME Device ---
+                if (activeSession != null && activeSession.getDeviceFingerprint().equals(deviceInfo.getDeviceFingerprint())) {
 
-                String token = jwtService.generateToken(user);
+                    // UPDATE the existing record instead of creating a new one
+                    activeSession.setLoginTime(LocalDateTime.now());
+                    activeSession.setIpAddress(deviceInfo.getIpAddress()); // Update IP in case they moved network
+                    activeSession.setLoginSuccessful(true);
 
-                HashMap<String, Object> response = new HashMap<>();
-                response.put("token", token);
-                response.put("studentId", user.getStudentId());
-                response.put("email", user.getEmail());
-                response.put("firstName", user.getFirstName());
-                response.put("lastName", user.getLastName());
-                response.put("role", user.getRole().name());
-                response.put("isTemporaryPassword", user.isTemporaryPassword());
-                response.put("deviceFingerprint", deviceInfo.getDeviceFingerprint());
-                response.put("deviceInfo", deviceInfo);
-                response.put("sessionId", newSession.getId());
-                response.put("message", user.isTemporaryPassword() ?
-                        "Please change your temporary password" : "Login successful");
-                response.put("status", HttpStatus.OK.value());
+                    // Save the update
+                    currentSessionRecord = loginHistoryRepository.save(activeSession);
 
-                return ResponseEntity.ok(response);
-            }
+                }
+                // New Device OR No Active Session ---
+                else {
+                    // If there was an active session on a DIFFERENT device, invalidate it first
+                    if (activeSession != null) {
+                        loginHistoryRepository.invalidateCurrentSessionsByUserId(user.getId());
+                    }
 
-            failureReason = "Authentication failed";
+                    // --- SMS ALERT LOGIC (Only runs for new sessions/devices) ---
+                    try {
+                        Optional<LoginHistory> lastLoginOpt = loginHistoryRepository
+                                .findTopByUserIdAndLoginSuccessfulOrderByLoginTimeDesc(user.getId(), true);
 
-            // Record failed login
-            LoginHistory failedLogin = LoginHistory.builder()
-                    .user(user)
-                    .loginTime(LocalDateTime.now())
-                    .ipAddress(deviceInfo.getIpAddress())
-                    .deviceType(deviceInfo.getDeviceType())
-                    .browser(deviceInfo.getBrowser())
-                    .operatingSystem(deviceInfo.getOperatingSystem())
-                    .userAgent(deviceInfo.getUserAgent())
-                    .deviceFingerprint(deviceInfo.getDeviceFingerprint())
-                    .isCurrentSession(false)
-                    .loginSuccessful(false)
-                    .failureReason(failureReason)
-                    .build();
+                        if (lastLoginOpt.isPresent()) {
+                            LoginHistory lastLogin = lastLoginOpt.get();
 
-            loginHistoryRepository.save(failedLogin);
+                            // Check if device is different
+                            if (!lastLogin.getDeviceFingerprint().equals(deviceInfo.getDeviceFingerprint())) {
+                                String studentMobile = user.getPhoneNumber1();
+                                String studentName = user.getFirstName();
+                                String studentId = user.getStudentId(); // Assuming you have this field
+                                String deviceType = deviceInfo.getDeviceType();
 
-            HashMap<String, Object> response = new HashMap<>();
-            response.put("message", "Invalid credentials");
-            response.put("status", HttpStatus.UNAUTHORIZED.value());
+                                String teacherMobile = "94705753003";
 
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+                                String studentMsg = String.format(
+                                        "Student Alert: ඔබ ( %s) පද්ධතියට පිවිසීම සඳහා වෙනත් උපාංගයක් (%s) භාවිතා කරන බව අපට නිරීක්ෂණය වේ. මෙය දිගින් දිගටම සිදු කළහොත්, ඔබව පද්ධතියෙන් ඉවත් කිරීමට සිදුවන බව කරුණාවෙන් සලකන්න.--Danister Serasighne,Kandy Eps Topik",
+                                        studentName, deviceType);
 
-        } catch (Exception e) {
-            failureReason = e.getMessage();
+                                String teacherMsg = String.format(
+                                        "Admin Alert: %s (%s) සිසුවා නව උපාංගයක් (%s) මගින් පද්ධතියට පිවිස ඇත. අවසරයකින් තොරව ගිණුම හුවමාරු කරගැනීමක් සිදුවන්නේදැයි කරුණාකර විමර්ශනය කරන්න",
+                                        studentName, studentId, deviceType);
 
-            // Record failed login attempt if user exists
-            if (user != null) {
-                try {
-                    DeviceInfoDTO deviceInfo = deviceInfoExtractor.extractDeviceInfo(request);
-                    LoginHistory failedLogin = LoginHistory.builder()
+                                //Send SMS Asynchronously (Both messages in one thread)
+                                new Thread(() -> {
+                                    // Send to Student
+                                    if (studentMobile != null && !studentMobile.isEmpty()) {
+                                        smsService.sendSms(studentMobile, studentMsg);
+                                    }
+
+                                    // Send to Teacher (Fixed Number)
+                                    if (teacherMobile != null && !teacherMobile.isEmpty()) {
+                                        smsService.sendSms(teacherMobile, teacherMsg);
+                                    }
+                                }).start();
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("SMS Alert Failed: " + e.getMessage());
+                    }
+                    LoginHistory newSession = LoginHistory.builder()
                             .user(user)
                             .loginTime(LocalDateTime.now())
                             .ipAddress(deviceInfo.getIpAddress())
@@ -233,23 +238,76 @@ public class AuthServiceImpl implements AuthService {
                             .operatingSystem(deviceInfo.getOperatingSystem())
                             .userAgent(deviceInfo.getUserAgent())
                             .deviceFingerprint(deviceInfo.getDeviceFingerprint())
-                            .isCurrentSession(false)
-                            .loginSuccessful(false)
-                            .failureReason(failureReason)
+                            .isCurrentSession(true)
+                            .loginSuccessful(true)
                             .build();
 
-                    loginHistoryRepository.save(failedLogin);
-                } catch (Exception ex) {
-                    System.err.println("Failed to record login history: " + ex.getMessage());
+                    currentSessionRecord = loginHistoryRepository.save(newSession);
                 }
+
+                //Generate Token and Response
+                String token = jwtService.generateToken(user);
+
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("token", token);
+                response.put("id", user.getId());
+                response.put("studentId", user.getStudentId());
+                response.put("email", user.getEmail());
+                response.put("firstName", user.getFirstName());
+                response.put("lastName", user.getLastName());
+                response.put("role", user.getRole().name());
+                response.put("deviceFingerprint", deviceInfo.getDeviceFingerprint());
+                response.put("sessionId", currentSessionRecord.getId()); // ID of updated or new session
+                response.put("message", "Login successful");
+                response.put("status", HttpStatus.OK.value());
+
+                return ResponseEntity.ok(response);
             }
+
+            // --- Handle Authentication Failure ---
+            failureReason = "Authentication failed";
+            saveFailedLogin(user, deviceInfo, failureReason);
 
             HashMap<String, Object> response = new HashMap<>();
             response.put("message", "Invalid credentials");
             response.put("status", HttpStatus.UNAUTHORIZED.value());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
 
+        } catch (Exception e) {
+            failureReason = e.getMessage();
+            if (user != null) {
+                try {
+                    DeviceInfoDTO deviceInfo = deviceInfoExtractor.extractDeviceInfo(request);
+                    saveFailedLogin(user, deviceInfo, failureReason);
+                } catch (Exception ex) {
+                    System.err.println("Failed to record login history: " + ex.getMessage());
+                }
+            }
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "Invalid credentials");
+            response.put("status", HttpStatus.UNAUTHORIZED.value());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
+    }
+
+    // Helper method to keep code clean
+    private void saveFailedLogin(User user, DeviceInfoDTO deviceInfo, String reason) {
+        String safeReason = reason != null && reason.length() > 990 ? reason.substring(0, 990) : reason;
+
+        LoginHistory failedLogin = LoginHistory.builder()
+                .user(user)
+                .loginTime(LocalDateTime.now())
+                .ipAddress(deviceInfo.getIpAddress())
+                .deviceType(deviceInfo.getDeviceType())
+                .browser(deviceInfo.getBrowser())
+                .operatingSystem(deviceInfo.getOperatingSystem())
+                .userAgent(deviceInfo.getUserAgent())
+                .deviceFingerprint(deviceInfo.getDeviceFingerprint())
+                .isCurrentSession(false)
+                .loginSuccessful(false)
+                .failureReason(safeReason)
+                .build();
+        loginHistoryRepository.save(failedLogin);
     }
 
 
