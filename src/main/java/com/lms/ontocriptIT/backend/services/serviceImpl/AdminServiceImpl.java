@@ -41,14 +41,19 @@ public class AdminServiceImpl implements AdminService {
 
 
     @Override
-    public ResponseEntity<?> getPendingRegistrations() {
+    public ResponseEntity<?> getPendingRegistrations(Pageable pageable) {
         try {
-            List<RegistrationRequest> pendingRequests =
-                    registrationRequestRepository.findByStatus(RequestStatus.PENDING);
+            Page<RegistrationRequest> pendingRequests =
+                    registrationRequestRepository.findByStatus(RequestStatus.PENDING, pageable);
 
             HashMap<String, Object> response = new HashMap<>();
-            response.put("data", pendingRequests);
-            response.put("count", pendingRequests.size());
+
+            response.put("data", pendingRequests.getContent());
+
+            response.put("currentPage", pendingRequests.getNumber());
+            response.put("totalItems", pendingRequests.getTotalElements()); // Important: Total DB count
+            response.put("totalPages", pendingRequests.getTotalPages());
+
             response.put("message", "Pending registrations retrieved successfully");
             response.put("status", HttpStatus.OK.value());
 

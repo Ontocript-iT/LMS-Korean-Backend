@@ -1,6 +1,7 @@
 package com.lms.ontocriptIT.backend.controller;
 
 import com.lms.ontocriptIT.backend.entity.ZoomClass;
+import com.lms.ontocriptIT.backend.repository.ClassAccessRepository;
 import com.lms.ontocriptIT.backend.repository.ZoomClassRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ZoomClassController {
     private final ZoomClassRepository zoomClassRepository;
+
+    private final ClassAccessRepository classAccessRepository;
 
     @PostMapping("/add")
     public ResponseEntity<?> addZoomClass(@RequestBody ZoomClass zoomClass) {
@@ -64,19 +67,29 @@ public class ZoomClassController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id}")// Assuming you have a mapping here// Ensures both deletes happen, or neither happens if one fails
     public ResponseEntity<?> deleteClass(@PathVariable Long id) {
-        try{
-            if(!zoomClassRepository.existsById(id)){
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Zoom class not found with id: " + id);
+        try {
+            if (!zoomClassRepository.existsById(id)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Zoom class not found with id: " + id);
             }
+
+            // 1. Delete all access records for this class first
+            classAccessRepository.deleteByZoomClassId(id);
+
+            // 2. Then delete the class itself
             zoomClassRepository.deleteById(id);
-            HashMap<String,Object> response = new HashMap<>();
-            response.put("message", "Zoom class deleted successfully");
+
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "Zoom class and associated accesses deleted successfully");
             response.put("status", HttpStatus.OK.value());
+
             return ResponseEntity.ok(response);
-        } catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting Zoom class: " + e.getMessage());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting Zoom class: " + e.getMessage());
         }
     }
 }

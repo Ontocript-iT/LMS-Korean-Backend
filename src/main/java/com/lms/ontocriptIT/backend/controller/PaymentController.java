@@ -76,7 +76,11 @@ public class PaymentController {
 
     @GetMapping("/getThisMonthPaymentCompleterStudents")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getThisMonthPaymentCompleterStudents() {
-        return paymentService.getThisMonthPaymentCompleterStudents();
+    public ResponseEntity<?> getThisMonthPaymentCompleterStudents(@RequestParam(required = false) Integer year,
+                                                                  @RequestParam(required = false) Integer month,
+                                                                  @RequestParam int page,@RequestParam int size) {
+        return paymentService.getThisMonthPaymentCompleterStudents(year,month,page,size);
     }
+
+//    @GetMapping("/filterStudentsBySelectedMonth/{year}/{month}")
 }

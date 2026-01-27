@@ -1,5 +1,6 @@
 package com.lms.ontocriptIT.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -66,6 +67,7 @@ public class User implements UserDetails {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Payment> payments;
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)

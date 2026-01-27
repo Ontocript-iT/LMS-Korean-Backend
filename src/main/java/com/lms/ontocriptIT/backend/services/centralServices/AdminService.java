@@ -5,7 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
 public interface AdminService {
-    ResponseEntity<?> getPendingRegistrations();
+    ResponseEntity<?> getPendingRegistrations(Pageable pageable);
     ResponseEntity<?> approveRegistration(ApproveRegistrationDTO dto);
     ResponseEntity<?> rejectRegistration(Long requestId);
 

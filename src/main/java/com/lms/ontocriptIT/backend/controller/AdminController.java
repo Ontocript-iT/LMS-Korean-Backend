@@ -18,8 +18,8 @@ public class AdminController {
     private final AdminService adminService;
 
     @GetMapping("/registrations/pending")
-    public ResponseEntity<?> getPendingRegistrations() {
-        return adminService.getPendingRegistrations();
+    public ResponseEntity<?> getPendingRegistrations(@PageableDefault(size = 10, page = 0, sort = "id") Pageable pageable) {
+        return adminService.getPendingRegistrations(pageable);
     }
 
     @PostMapping("/registrations/approve")

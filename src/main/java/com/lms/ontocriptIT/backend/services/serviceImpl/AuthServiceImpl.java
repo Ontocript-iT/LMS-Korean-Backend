@@ -53,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
             // Check for duplicates
             if (registrationRequestRepository.existsByEmail(dto.getEmail())) {
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "Email already registered");
+                response.put("message", "මෙම Email ලිපිනය දැනටමත් ලියාපදිංචි කර ඇත.");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -61,7 +61,15 @@ public class AuthServiceImpl implements AuthService {
 
             if (registrationRequestRepository.existsByIdNumber(dto.getIdNumber())) {
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "ID number already registered");
+                response.put("message", "මෙම ID අංකය දැනටමත් ලියාපදිංචි කර ඇත.");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+            if (userRepository.existsByPhoneNumber1(dto.getPhoneNumber1())) {
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("message", "ඇතුළත් කළ දුරකථන අංක 1 දැනටමත් පද්ධතියේ පවතී.");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -69,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
 
             if (userRepository.existsByEmail(dto.getEmail())) {
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "Email already exists in system");
+                response.put("message", "මෙම Email ලිපිනය දැනටමත් ලියාපදිංචි කර ඇත.");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
