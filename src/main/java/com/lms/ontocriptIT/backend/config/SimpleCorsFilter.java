@@ -23,7 +23,7 @@ public class SimpleCorsFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
 
         List<String> allowedOrigins = Arrays.asList(
-                "https://www.kandyepstopik.lk/",
+                "https://www.kandyepstopik.lk",
                 "http://localhost:3000" // Example for local development
         );
 
