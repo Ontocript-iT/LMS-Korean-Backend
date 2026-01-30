@@ -28,7 +28,9 @@ public class EmailServiceImpl implements EmailService {
     public void sendAccountCreationEmail(String toEmail, String studentId,
                                          String temporaryPassword, String resetToken) {
         try {
-            String resetLink = baseUrl + "/reset-password?token=" + resetToken;
+            String resetLink = "https://www.kandyepstopik.lk" + "/reset-default-password?token=" + resetToken;
+
+            System.out.println("Preparing to send account creation email to " + resetLink);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

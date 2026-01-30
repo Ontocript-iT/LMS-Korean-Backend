@@ -69,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
 
             if (userRepository.existsByPhoneNumber1(dto.getPhoneNumber1())) {
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "ඇතුළත් කළ දුරකථන අංක 1 දැනටමත් පද්ධතියේ පවතී.");
+                response.put("message", "ඔබ ඇතුළත් කළ දුරකථන අංක 01 දැනටමත් පද්ධතියේ පවතී. කරුණාකර වෙනත් දුරකථන අංකයක් භාවිතා කරන්න.");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
