@@ -50,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ResponseEntity<?> registerStudent(StudentRegistrationDTO dto) {
         try {
-            // Check for duplicates
+          //   Check for duplicates
             if (registrationRequestRepository.existsByEmail(dto.getEmail())) {
                 HashMap<String, Object> response = new HashMap<>();
                 response.put("message", "මෙම Email ලිපිනය දැනටමත් ලියාපදිංචි කර ඇත.");

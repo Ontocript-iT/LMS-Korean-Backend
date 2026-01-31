@@ -29,6 +29,7 @@ public class EmailServiceImpl implements EmailService {
                                          String temporaryPassword, String resetToken) {
         try {
             String resetLink = "https://www.kandyepstopik.lk" + "/auth/reset-default-password?token=" + resetToken;
+//            String resetLink = "http://localhost:3000" + "/auth/reset-default-password?token=" + resetToken;
 
             System.out.println("Preparing to send account creation email to " + resetLink);
 
