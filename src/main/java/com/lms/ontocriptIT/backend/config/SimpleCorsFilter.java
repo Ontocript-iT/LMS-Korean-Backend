@@ -33,10 +33,9 @@ public class SimpleCorsFilter implements Filter {
             response.setHeader("Access-Control-Allow-Origin", requestOrigin);
 
             response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
-            response.setHeader("Access-Control-Allow-Headers", "authorization, content-type, xsrf-token, x-requested-with");
+            response.setHeader("Access-Control-Allow-Headers", "authorization, content-type, xsrf-token, x-requested-with,accept, origin");
             response.setHeader("Access-Control-Expose-Headers", "xsrf-token");
             response.setHeader("Access-Control-Allow-Credentials", "true");
-            response.setHeader("Access-Control-Max-Age", "3600");
         }
 
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
@@ -45,4 +44,10 @@ public class SimpleCorsFilter implements Filter {
             chain.doFilter(req, res);
         }
     }
+
+    @Override
+    public void init(FilterConfig filterConfig) {}
+
+    @Override
+    public void destroy() {}
 }
