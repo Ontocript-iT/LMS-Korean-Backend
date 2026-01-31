@@ -17,7 +17,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/register")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class RegistrationController {
 
     private final AuthService authService;
