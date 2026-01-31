@@ -13,4 +13,6 @@ public interface AuthService {
     ResponseEntity<?> login(LoginRequestDTO dto, HttpServletRequest request);
     ResponseEntity<?> resetPassword(ResetPasswordDTO dto);
     ResponseEntity<?> initiatePasswordReset(String identifier);
+
+    ResponseEntity<?> sendPasswordResetEmail(String studentId);
 }

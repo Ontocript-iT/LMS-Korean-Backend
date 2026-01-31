@@ -11,6 +11,7 @@ import com.lms.ontocriptIT.backend.repository.UserRepository;
 import com.lms.ontocriptIT.backend.security.JwtService;
 import com.lms.ontocriptIT.backend.services.SmsService;
 import com.lms.ontocriptIT.backend.services.centralServices.AuthService;
+import com.lms.ontocriptIT.backend.services.centralServices.EmailService;
 import com.lms.ontocriptIT.backend.services.centralServices.WhatsAppService;
 import com.lms.ontocriptIT.backend.utils.DeviceInfoExtractor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,10 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +38,8 @@ public class AuthServiceImpl implements AuthService {
     private final LoginHistoryRepository loginHistoryRepository;
 
     private final SmsService smsService;
+
+    private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -405,34 +405,102 @@ public class AuthServiceImpl implements AuthService {
             User user = findUserByIdentifier(identifier)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            String resetToken = UUID.randomUUID().toString();
-            user.setResetPasswordToken(resetToken);
-            user.setTokenExpiryDate(LocalDateTime.now().plusHours(24));
+            // 1. Generate 6-digit OTP
+            String otp = String.format("%06d", new Random().nextInt(999999));
+
+            // 2. Store OTP in the existing reset token field
+            user.setResetPasswordToken(otp);
+            // OTPs should expire quickly (e.g., 15 minutes), not 24 hours
+            user.setTokenExpiryDate(LocalDateTime.now().plusMinutes(15));
 
             userRepository.save(user);
 
+            // 3. Send OTP via Email
+            try {
+                emailService.sendPasswordResetOtp(user.getEmail(), otp);
+            } catch (Exception emailEx) {
+                // Log error but don't fail the request to avoid revealing user existence
+                System.err.println("Failed to send OTP email: " + emailEx.getMessage());
+            }
+
             HashMap<String, Object> response = new HashMap<>();
-            response.put("email", user.getEmail());
-            response.put("message", "Password reset link sent to your email");
-            response.put("expiresIn", "24 hours");
+            response.put("message", "OTP sent to your email successfully");
+            response.put("email", user.getEmail()); // optional, helpful for frontend
+            response.put("expiresIn", "15 minutes");
             response.put("status", HttpStatus.OK.value());
 
-            // Send email would be handled by EmailService
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
             HashMap<String, Object> response = new HashMap<>();
             response.put("message", e.getMessage());
             response.put("status", HttpStatus.NOT_FOUND.value());
-
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
         } catch (Exception e) {
             HashMap<String, Object> response = new HashMap<>();
-            response.put("message", "Failed to initiate password reset: " + e.getMessage());
+            response.put("message", "Error: " + e.getMessage());
             response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> sendPasswordResetEmail(String studentId){
+        try {
+            User user = userRepository.findByStudentId(studentId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Generate a secure token (you can use UUID or any secure random generator)
+            String resetToken = UUID.randomUUID().toString();
+
+            String tempPassword = generateTemporaryPassword(
+                    user.getFirstName(),
+                    user.getIdNumber()
+            );
+
+            // Store the token and its expiry in the user entity
+            user.setPassword(passwordEncoder.encode(tempPassword));
+            user.setResetPasswordToken(resetToken);
+            user.setTokenExpiryDate(LocalDateTime.now().plusHours(24)); // Token valid for 24 hours
+
+            userRepository.save(user);
+
+            System.out.println("Generated reset token: " + resetToken);
+
+            // Send password reset email
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getStudentId(), tempPassword, resetToken);
+
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "Password reset email sent successfully");
+            response.put("email", user.getEmail());
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            response.put("status", HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
+        } catch (Exception e) {
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to send password reset email: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    private String generateTemporaryPassword(String firstName, String idNumber) {
+        try {
+            String last5Digits = idNumber.replaceAll("[^0-9]", "");
+            last5Digits = last5Digits.substring(Math.max(0, last5Digits.length() - 4));
+            return firstName.toLowerCase() + last5Digits;
+
+        } catch (Exception e) {
+            // Fallback password generation
+            return firstName.toLowerCase() + "12345";
         }
     }
 
