@@ -55,10 +55,50 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+
+
     @Override
-    public void sendPasswordResetEmail(String toEmail, String resetToken) {
+    public void sendPasswordResetOtp(String toEmail, String otp) {
         try {
-            String resetLink = baseUrl + "/reset-password?token=" + resetToken;
+            System.out.println("Sending OTP " + otp + " to " + toEmail);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(senderEmail, "LMS - OntocriptIT");
+            helper.setTo(toEmail);
+            helper.setSubject("Password Reset Request - OTP");
+
+            // Build the HTML body with the OTP
+            String htmlBody = buildOtpEmailBody(otp);
+            helper.setText(htmlBody, true);
+
+            mailSender.send(message);
+            System.out.println("OTP email sent successfully to " + toEmail);
+
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            System.err.println("Failed to send OTP email: " + e.getMessage());
+            throw new RuntimeException("Failed to send email");
+        }
+    }
+
+    // Helper method to create a nice HTML email
+    private String buildOtpEmailBody(String otp) {
+        return "<div style=\"font-family: Arial, sans-serif; padding: 20px; color: #333;\">"
+                + "<h2>Password Reset Request</h2>"
+                + "<p>You have requested to reset your password. Use the OTP below to proceed:</p>"
+                + "<h1 style=\"color: #007bff; letter-spacing: 5px;\">" + otp + "</h1>"
+                + "<p>This OTP is valid for <strong>15 minutes</strong>.</p>"
+                + "<p>If you did not request this, please ignore this email.</p>"
+                + "<br>"
+                + "<p>Regards,<br><strong>OntocriptIT Team</strong></p>"
+                + "</div>";
+    }
+    @Override
+    public void sendPasswordResetEmail(String toEmail, String studentId,
+                                       String temporaryPassword, String resetToken) {
+        try {
+            String resetLink = "https://www.kandyepstopik.lk" + "/auth/reset-default-password?token=" + resetToken;
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -68,7 +108,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject("Password Reset Request - LMS");
             helper.setReplyTo("support@ontocriptit.com");
 
-            String htmlBody = buildPasswordResetEmailBody(resetLink);
+            String htmlBody = buildPasswordResetEmailBody(studentId,temporaryPassword,resetLink);
             helper.setText(htmlBody, true);
 
             mailSender.send(message);
@@ -82,94 +122,38 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-//    private String buildAccountCreationEmailBody(String studentId, String temporaryPassword, String resetLink) {
-//        return "<!DOCTYPE html>" +
-//                "<html>" +
-//                "<head>" +
-//                "<meta charset='UTF-8'>" +
-//                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-//                "<style>" +
-//                "body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }" +
-//                ".container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4; }" +
-//                ".email-content { background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }" +
-//                ".header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; margin: -30px -30px 20px -30px; }" +
-//                ".header h1 { margin: 0; font-size: 24px; }" +
-//                ".credentials-box { background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 5px; }" +
-//                ".credentials-box p { margin: 8px 0; font-size: 14px; }" +
-//                ".credentials-box strong { color: #667eea; font-size: 16px; }" +
-//                ".button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 25px; margin: 20px 0; font-weight: bold; }" +
-//                ".button:hover { opacity: 0.9; }" +
-//                ".info-box { background-color: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 15px 0; border-radius: 5px; }" +
-//                ".warning-box { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; border-radius: 5px; }" +
-//                ".footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #777; font-size: 12px; }" +
-//                "ul { padding-left: 20px; }" +
-//                "ul li { margin: 8px 0; }" +
-//                "</style>" +
-//                "</head>" +
-//                "<body>" +
-//                "<div class='container'>" +
-//                "<div class='email-content'>" +
-//                "<div class='header'>" +
-//                "<h1>🎓 Welcome to LMS Platform</h1>" +
-//                "</div>" +
-//
-//                "<p>Dear Student,</p>" +
-//
-//                "<p>Congratulations! Your account has been successfully created in our <strong>Learning Management System (LMS)</strong>.</p>" +
-//
-//                "<div class='credentials-box'>" +
-//                "<h3 style='margin-top: 0; color: #667eea;'>📋 Your Login Credentials</h3>" +
-//                "<p><strong>Student ID:</strong> " + studentId + "</p>" +
-//                "<p><strong>Temporary Password:</strong> " + temporaryPassword + "</p>" +
-//                "</div>" +
-//
-//                "<div class='info-box'>" +
-//                "<p><strong>💡 Login Options:</strong></p>" +
-//                "<p>You can login using any of the following as your username:</p>" +
-//                "<ul>" +
-//                "<li>Your Student ID</li>" +
-//                "<li>Your Email Address</li>" +
-//                "<li>Your Registered Phone Number</li>" +
-//                "</ul>" +
-//                "</div>" +
-//
-//                "<div class='warning-box'>" +
-//                "<p><strong>🔐 Security Recommendation:</strong></p>" +
-//                "<p>For your account security, we strongly recommend changing your temporary password immediately.</p>" +
-//                "</div>" +
-//
-//                "<div style='text-align: center;'>" +
-//                "<a href='" + resetLink + "' class='button'>Reset Password Now</a>" +
-//                "</div>" +
-//
-//                "<p style='text-align: center; color: #777; font-size: 13px;'>Or copy this link: <br>" +
-//                "<span style='word-break: break-all;'>" + resetLink + "</span></p>" +
-//
-//                "<div class='info-box'>" +
-//                "<p><strong>⏰ Important Notes:</strong></p>" +
-//                "<ul>" +
-//                "<li>This password reset link will expire in <strong>7 days</strong></li>" +
-//                "<li>If you don't reset your password now, you can still login with the temporary password</li>" +
-//                "<li>You can change your password anytime from your account settings</li>" +
-//                "</ul>" +
-//                "</div>" +
-//
-//                "<p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>" +
-//
-//                "<p>Best regards,<br>" +
-//                "<strong>LMS Administration Team</strong><br>" +
-//                "OntocriptIT</p>" +
-//
-//                "<div class='footer'>" +
-//                "<p>This is an automated email. Please do not reply directly to this message.</p>" +
-//                "<p>© 2026 OntocriptIT Learning Management System. All rights reserved.</p>" +
-//                "</div>" +
-//
-//                "</div>" +
-//                "</div>" +
-//                "</body>" +
-//                "</html>";
-//    }
+    private String buildPasswordResetEmailBody(String studentId, String temporaryPassword, String resetLink) {
+        return "<div style=\"font-family: 'Helvetica Neue', Helvetica, Arial, 'Iskoola Pota', 'Nirmala UI', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;\">"
+                + "  <div style=\"background-color: #007bff; padding: 20px; text-align: center; color: #ffffff;\">"
+                + "    <h2 style=\"margin: 0;\">Kandy EPS Topik</h2>"
+                + "  </div>"
+                + "  <div style=\"padding: 30px; background-color: #ffffff;\">"
+                + "    <p style=\"font-size: 16px; color: #333333; margin-bottom: 5px;\">Hello / ආයුබෝවන්,</p>"
+                + "    <p style=\"font-size: 15px; color: #555555; line-height: 1.5; margin-bottom: 10px;\">"
+                + "      Below are your temporary login credentials. Please use the link below to verify your account and set a new password."
+                + "    </p>"
+                + "    <p style=\"font-size: 15px; color: #555555; line-height: 1.5; margin-bottom: 20px;\">"
+                + "      ඔබගේ තාවකාලික පිවිසුම් විස්තර (Login details) පහත දැක්වේ. ඔබගේ ගිණුම තහවුරු කර නව මුරපදයක් (New Password) සකසා ගැනීමට පහත බොත්තම click කරන්න."
+                + "    </p>"
+                + "    <div style=\"background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 20px 0;\">"
+                + "      <p style=\"margin: 5px 0; font-size: 15px;\"><strong>Student ID (ශිෂ්‍ය අංකය):</strong> <span style=\"color: #007bff; font-weight: bold;\">" + studentId + "</span></p>"
+                + "      <p style=\"margin: 5px 0; font-size: 15px;\"><strong>Temporary Password (තාවකාලික මුරපදය):</strong> <span style=\"font-family: monospace; background-color: #eee; padding: 2px 6px; border-radius: 4px; font-weight: bold;\">" + temporaryPassword + "</span></p>"
+                + "    </div>"
+                + "    <div style=\"text-align: center; margin-top: 30px;\">"
+                + "      <a href=\"" + resetLink + "\" style=\"background-color: #28a745; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block;\">Verify & Change Password<br><span style=\"font-size:13px; font-weight:normal;\">(ගිණුම තහවුරු කරන්න)</span></a>"
+                + "    </div>"
+                + "    <p style=\"margin-top: 30px; font-size: 13px; color: #777777; text-align: center;\">"
+                + "      If the button doesn't work, copy and paste this link into your browser:<br>"
+                + "      (ඉහත බොත්තම ක්‍රියා නොකරයි නම්, පහත සබැඳිය භාවිතා කරන්න)<br>"
+                + "      <a href=\"" + resetLink + "\" style=\"color: #007bff; word-break: break-all;\">" + resetLink + "</a>"
+                + "    </p>"
+                + "  </div>"
+                + "  <div style=\"background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666666;\">"
+                + "    &copy; " + java.time.Year.now().getValue() + " Kandy EPS Topik. All rights reserved."
+                + "  </div>"
+                + "</div>";
+    }
+
 
     private String buildAccountCreationEmailBody(String studentId, String temporaryPassword, String resetLink) {
         return "<!DOCTYPE html>" +

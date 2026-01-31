@@ -79,13 +79,14 @@ public class VideoServiceImpl implements VideoService {
             }
 
             // Validate file size (max 1GB)
-            long maxFileSize = 1073741824L; // 1GB
+            long maxFileSize = 5L * 1024 * 1024 * 1024; // 5 GB in bytes
+
             if (file.getSize() > maxFileSize) {
                 double fileSizeMB = file.getSize() / (1024.0 * 1024.0);
                 HashMap<String, Object> response = new HashMap<>();
-                response.put("message", "File size exceeds maximum limit of 1GB");
+                response.put("message", "File size exceeds maximum limit of 5GB");
                 response.put("fileSize", String.format("%.2f MB", fileSizeMB));
-                response.put("maxAllowed", "1024 MB");
+                response.put("maxAllowed", "5120 MB"); // 5GB in MB
                 response.put("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
 
                 return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(response);
