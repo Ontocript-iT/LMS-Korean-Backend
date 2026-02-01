@@ -1,5 +1,8 @@
 package com.lms.ontocriptIT.backend.services.serviceImpl;
 
+import com.coremedia.iso.IsoFile;
+import com.coremedia.iso.boxes.MovieBox;
+import com.googlecode.mp4parser.DataSource;
 import com.lms.ontocriptIT.backend.dtos.*;
 import com.lms.ontocriptIT.backend.entity.*;
 import com.lms.ontocriptIT.backend.repository.*;
@@ -13,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.HashMap;
@@ -39,6 +45,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     @Transactional
     public ResponseEntity<?> uploadVideo(String title, String description, MultipartFile file, Long adminId) {
+        File tempFile = null;
         try {
             User admin = userRepository.findById(adminId)
                     .orElseThrow(() -> new RuntimeException("Admin not found"));
@@ -92,6 +99,27 @@ public class VideoServiceImpl implements VideoService {
                 return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(response);
             }
 
+            tempFile = File.createTempFile("video_upload_temp", ".mp4");
+
+            // 2. Copy the MultipartFile stream to the temp file
+            Files.copy(file.getInputStream(), tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+            // 3. Extract duration using IsoFile
+            long durationInSeconds = 0;
+
+            // FIX: Pass tempFile.getAbsolutePath() instead of tempFile
+            try (IsoFile isoFile = new IsoFile(tempFile.getAbsolutePath())) {
+                MovieBox movieBox = isoFile.getMovieBox();
+                long duration = movieBox.getMovieHeaderBox().getDuration();
+                long timescale = movieBox.getMovieHeaderBox().getTimescale();
+
+                // Calculate seconds
+                durationInSeconds = duration / timescale;
+            }
+
+            // 4. Print the duration (SOUT)
+            System.out.println("Video Duration: " + durationInSeconds + " seconds");
+
             // Upload to Bunny.net
             Map<String, String> uploadResult = bunnyStreamService.uploadVideoFile(title, file);
 
@@ -108,7 +136,7 @@ public class VideoServiceImpl implements VideoService {
                     .videoUrl(videoUrl)
                     .thumbnailUrl(thumbnailUrl)
                     .uploadMonth(currentMonth)
-                    .duration(0)
+                    .duration((int) durationInSeconds)
                     .fileSizeBytes(file.getSize())
                     .originalFileName(file.getOriginalFilename())
                     .status(VideoStatus.PROCESSING)
