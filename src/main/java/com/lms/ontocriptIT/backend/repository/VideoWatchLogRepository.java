@@ -3,8 +3,11 @@ package com.lms.ontocriptIT.backend.repository;
 import com.lms.ontocriptIT.backend.entity.VideoWatchLog;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,4 +24,8 @@ public interface VideoWatchLogRepository extends JpaRepository<VideoWatchLog, Lo
     List<Object[]> findTopVideos(Pageable pageable);
 
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Transactional
+    @Query("DELETE FROM VideoWatchLog log WHERE log.video.id = :videoId")
+    void deleteByVideoId(@Param("videoId") Long videoId);
 }

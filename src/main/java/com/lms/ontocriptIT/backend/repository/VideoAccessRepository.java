@@ -4,8 +4,11 @@ import com.lms.ontocriptIT.backend.entity.User;
 import com.lms.ontocriptIT.backend.entity.Video;
 import com.lms.ontocriptIT.backend.entity.VideoAccess;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +27,12 @@ public interface VideoAccessRepository extends JpaRepository<VideoAccess, Long> 
 
     @Query("SELECT va FROM VideoAccess va WHERE va.student.id = :studentId AND va.video.id = :videoId")
     Optional<VideoAccess> findByStudentIdAndVideoId(Long studentId, Long videoId);
+
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true) // <--- THIS IS KEY
+    @Transactional
+    @Query("DELETE FROM VideoAccess va WHERE va.video.id = :videoId")
+    void deleteByVideoId(@Param("videoId") Long videoId);
 
 //    Optional<VideoAccess> findByUser_IdAndVideo_Id(Long userId, Long videoId);
 }

@@ -176,7 +176,7 @@ public class VideoServiceImpl implements VideoService {
         VideoAccess access = videoAccessRepository.findByStudentIdAndVideoId(userId, videoId)
                 .orElse(null);
 
-        if (access == null) return true; 
+        if (access == null) return true;
 
         return !access.isLimitExceeded();
     }
@@ -294,13 +294,15 @@ public class VideoServiceImpl implements VideoService {
             String videoTitle = video.getTitle();
             String bunnyVideoId = video.getBunnyVideoId();
 
+            videoWatchLogRepository.deleteByVideoId(videoId);
+            videoAccessRepository.deleteByVideoId(videoId);
+
             // Delete from Bunny.net
             try {
                 bunnyStreamService.deleteVideo(video.getBunnyVideoId());
             } catch (Exception e) {
-                System.err.println("Failed to delete from Bunny.net: " + e.getMessage());
+//                System.err.println("Failed to delete from Bunny.net: " + e.getMessage());
             }
-
             videoRepository.delete(video);
 
             HashMap<String, Object> response = new HashMap<>();
