@@ -15,4 +15,7 @@ public interface AdminService {
 
     ResponseEntity<?> searchApprovedStudentById(String studentId);
 
+    ResponseEntity<?> suspendOrActiveStudent(String studentId);
+
+    ResponseEntity<?> getSuspendedStudents(Pageable pageable);
 }

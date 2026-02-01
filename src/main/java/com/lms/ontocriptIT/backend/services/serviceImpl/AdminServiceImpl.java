@@ -349,4 +349,69 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> suspendOrActiveStudent(String studentId){
+
+        try {
+            User user = userRepository.findByStudentId(studentId)
+                    .orElseThrow(() -> new RuntimeException("Student not found with ID: " + studentId));
+
+            if (user.getStatus() == AccountStatus.ACTIVE) {
+                user.setStatus(AccountStatus.SUSPENDED);
+            } else {
+                user.setStatus(AccountStatus.ACTIVE);
+            }
+
+            userRepository.save(user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("studentId", user.getStudentId());
+            response.put("newStatus", user.getStatus().toString());
+            response.put("message", "Student status updated successfully");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            response.put("status", HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to update student status: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @Override
+    public  ResponseEntity<?> getSuspendedStudents(Pageable pageable) {
+        try {
+            Page<User> suspendedStudentsPage =
+                    userRepository.findByRoleAndStatus(Role.STUDENT, AccountStatus.SUSPENDED, pageable);
+
+            List<StudentDTO> studentDTOs = suspendedStudentsPage.getContent().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", studentDTOs);
+            response.put("count", suspendedStudentsPage.getTotalElements());
+            response.put("currentPage", suspendedStudentsPage.getNumber());
+            response.put("totalPages", suspendedStudentsPage.getTotalPages());
+            response.put("message", "Suspended students retrieved successfully");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to retrieve suspended students: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
 }
