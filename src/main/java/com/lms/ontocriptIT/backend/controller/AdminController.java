@@ -49,4 +49,16 @@ public class AdminController {
 
     }
 
+    @PostMapping("/suspendOrActiveStudent/{studentId}")
+    public ResponseEntity<?> suspendOrActiveStudent(@PathVariable String studentId){
+        return adminService.suspendOrActiveStudent(studentId);
+
+    }
+
+    @GetMapping("/getSuspendedStudents")
+    public ResponseEntity<?> getSuspendedStudents(
+            @PageableDefault(size = 2, page = 0, sort = "id") Pageable pageable) {
+        return adminService.getSuspendedStudents(pageable);
+    }
+
 }

@@ -36,6 +36,9 @@ public class Video {
     private String thumbnailUrl;
 
     @Column(nullable = false)
+    private int maxWatchTime;
+
+    @Column(nullable = false)
     private YearMonth uploadMonth;
 
     @Column(nullable = false)
@@ -66,10 +69,14 @@ public class Video {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         isActive = true;
+
+        this.maxWatchTime = this.duration + (this.duration / 4);
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        this.maxWatchTime = this.duration + (this.duration / 4);
     }
+
 }

@@ -3,6 +3,7 @@ package com.lms.ontocriptIT.backend.services.serviceImpl;
 import com.lms.ontocriptIT.backend.auth.*;
 import com.lms.ontocriptIT.backend.dtos.DeviceInfoDTO;
 import com.lms.ontocriptIT.backend.dtos.StudentRegistrationDTO;
+import com.lms.ontocriptIT.backend.entity.AccountStatus;
 import com.lms.ontocriptIT.backend.entity.LoginHistory;
 import com.lms.ontocriptIT.backend.entity.User;
 import com.lms.ontocriptIT.backend.repository.LoginHistoryRepository;
@@ -153,8 +154,18 @@ public class AuthServiceImpl implements AuthService {
         String failureReason = null;
 
         try {
+
             user = findUserByIdentifier(dto.getUsername())
                     .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+
+            if (user.getStatus() == AccountStatus.SUSPENDED){
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "ඔබේ ගිණුම තාවකාලිකව අත්හිටුවා (Suspend) ඇත. වැඩිදුර විස්තර සඳහා WhatsApp අංකය හරහා අමතන්න.");
+            response.put("status", HttpStatus.UNAUTHORIZED.value());
+
+            // Return 401 Unauthorized immediately
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
 
             DeviceInfoDTO deviceInfo = deviceInfoExtractor.extractDeviceInfo(request);
 
