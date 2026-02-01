@@ -189,7 +189,7 @@ public class EmailServiceImpl implements EmailService {
                 "            <h1 class='sinhala-text'>ආයුබෝවන්! සාදරයෙන් පිළිගනිමු</h1>" +
                 "        </div>" +
 
-                "        <p class='sinhala-text' style='font-size: 16px; color: #475569;'>ගරු ශිෂ්‍යයා,</p>" +
+                "        <p class='sinhala-text' style='font-size: 16px; color: #475569;'>Dear Student,</p>" +
                 "        <p class='sinhala-text' style='font-size: 15px; color: #475569;'>ඔබේ ගිණුම අපගේ <strong>ඉගෙනුම් කළමනාකරණ පද්ධතිය (LMS)</strong> තුළ සාර්ථකව නිර්මාණය කර ඇත. ඔබගේ පිවිසුම් තොරතුරු පහත දැක්වේ:</p>" +
 
                 "        <div class='credentials-wrapper'>" +
@@ -208,7 +208,7 @@ public class EmailServiceImpl implements EmailService {
                 "            <div class='sinhala-text' style='font-size: 13px;'>" +
                 "                • ශිෂ්‍ය හැඳුනුම්පත (Student ID)<br>" +
                 "                • විද්‍යුත් තැපැල් ලිපිනය (Email)<br>" +
-                "                • දුරකථන අංකය (Phone Number)" +
+                "                • දුරකථන අංකය 01 (Phone Number 01)" +
                 "            </div>" +
                 "        </div>" +
 
@@ -228,13 +228,15 @@ public class EmailServiceImpl implements EmailService {
 
                 "        <p class='sinhala-text' style='font-size: 14px; margin-top: 32px; color: #475569;'>" +
                 "            ස්තූතියි,<br>" +
-                "            <strong>LMS පරිපාලන කණ්ඩායම</strong><br>" +
-                "            <span style='color: #94a3b8; font-size: 12px;'>OntocriptIT</span>" +
+                "            <strong>Kandy EPS Topik පරිපාලන කණ්ඩායම</strong><br>" +
+                "    <a href='https://ontocriptit.com/' target='_blank' style='text-decoration: none; cursor: pointer;'>" +
+                "            <span style='color: #94a3b8; font-size: 12px;'>POWERED BY ONTOCRIPT IT (PVT) LTD</span>" +
+                "    </a>" +
                 "        </p>" +
 
                 "        <div class='footer sinhala-text'>" +
                 "            <p>මෙය ස්වයංක්‍රීය පණිවිඩයකි. කරුණාකර මෙයට පිළිතුරු නොදෙන්න.</p>" +
-                "            <p>© 2026 OntocriptIT LMS. All rights reserved.</p>" +
+                "            <p>© 2026 Kandy EPS Topik LMS. All rights reserved.</p>" +
                 "        </div>" +
                 "    </div>" +
                 "</div>" +
