@@ -43,6 +43,8 @@ public class VideoAccess {
 
     private LocalDateTime accessRevokedDate;
 
+    private long totalSecondsWatched = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "granted_by")
     private User grantedBy;
@@ -68,6 +70,10 @@ public class VideoAccess {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public boolean isLimitExceeded() {
+        return totalSecondsWatched >= video.getMaxWatchTime();
     }
 }
 

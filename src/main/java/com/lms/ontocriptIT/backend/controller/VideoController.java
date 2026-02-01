@@ -3,6 +3,7 @@ package com.lms.ontocriptIT.backend.controller;
 import com.lms.ontocriptIT.backend.dtos.VideoAccessDTO;
 import com.lms.ontocriptIT.backend.entity.User;
 import com.lms.ontocriptIT.backend.services.centralServices.VideoService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/videos")
@@ -108,5 +111,37 @@ public class VideoController {
             @PathVariable Long videoId,
             @AuthenticationPrincipal User student) {
         return videoService.getStudentVideoAccess(student.getId(), videoId);
+    }
+
+    @GetMapping("/check/{videoId}")
+    public ResponseEntity<?> checkAccess(@PathVariable Long videoId, HttpServletRequest request, @AuthenticationPrincipal User user) {
+
+        boolean canWatch = videoService.canWatch(user.getId(), videoId);
+
+        if (!canWatch) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Watch limit exceeded (1.25x duration reached)."));
+        }
+        return ResponseEntity.ok(Map.of("status", "ALLOWED"));
+    }
+
+    @PostMapping("/heartbeat/{videoId}")
+    public ResponseEntity<?> trackHeartbeat(@PathVariable Long videoId,@AuthenticationPrincipal User user) {
+        try {
+
+            int heartbeatInterval = 10;
+
+            Map<String, Object> stats = videoService.trackWatchTime(user.getId(), videoId, heartbeatInterval);
+            return ResponseEntity.ok(stats);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/setTotalWatchTimeTpZero/{videoId}")
+    public ResponseEntity<?> setTotalWatchTimeTpZero(
+            @PathVariable Long videoId,@AuthenticationPrincipal User user) {
+        return videoService.setTotalWatchTimeToZero(videoId,user.getId());
     }
 }

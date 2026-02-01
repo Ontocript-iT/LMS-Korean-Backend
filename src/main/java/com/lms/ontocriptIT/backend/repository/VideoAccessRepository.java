@@ -24,4 +24,6 @@ public interface VideoAccessRepository extends JpaRepository<VideoAccess, Long> 
 
     @Query("SELECT va FROM VideoAccess va WHERE va.student.id = :studentId AND va.video.id = :videoId")
     Optional<VideoAccess> findByStudentIdAndVideoId(Long studentId, Long videoId);
+
+//    Optional<VideoAccess> findByUser_IdAndVideo_Id(Long userId, Long videoId);
 }

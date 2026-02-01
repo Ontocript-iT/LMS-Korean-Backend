@@ -172,6 +172,36 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
+    public boolean canWatch(Long userId, Long videoId) {
+        VideoAccess access = videoAccessRepository.findByStudentIdAndVideoId(userId, videoId)
+                .orElse(null);
+
+        if (access == null) return true; 
+
+        return !access.isLimitExceeded();
+    }
+
+    @Transactional
+    public Map<String, Object> trackWatchTime(Long userId, Long videoId, int secondsToAdd) {
+        VideoAccess access = videoAccessRepository.findByStudentIdAndVideoId(userId, videoId)
+                .orElseThrow(() -> new RuntimeException("Access record not found"));
+
+        if (access.isLimitExceeded()) {
+            throw new RuntimeException("Watch limit exceeded");
+        }
+
+        // Add the time (e.g., +10 seconds)
+        access.setTotalSecondsWatched(access.getTotalSecondsWatched() + secondsToAdd);
+        videoAccessRepository.save(access);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("totalWatched", access.getTotalSecondsWatched());
+        response.put("maxLimit", access.getVideo().getMaxWatchTime());
+        response.put("remaining", Math.max(0, access.getVideo().getMaxWatchTime() - access.getTotalSecondsWatched()));
+
+        return response;
+    }
+
     @Override
     public ResponseEntity<?> getAllVideos() {
         try {
@@ -689,6 +719,39 @@ public class VideoServiceImpl implements VideoService {
                     .attemptsUsed(access.getAttemptsUsed())
                     .remainingAttempts(access.getMaxAttempts() - access.getAttemptsUsed())
                     .build();
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> setTotalWatchTimeToZero(Long videoId, Long userId){
+        try {
+            VideoAccess access = videoAccessRepository.findByStudentIdAndVideoId(userId, videoId)
+                    .orElseThrow(() -> new RuntimeException("Access record not found"));
+
+            access.setTotalSecondsWatched(0);
+            videoAccessRepository.save(access);
+
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("videoId", videoId);
+            response.put("userId", userId);
+            response.put("message", "Total watch time reset to zero successfully");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            response.put("status", HttpStatus.NOT_FOUND.value());
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
+        } catch (Exception e) {
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to reset total watch time: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }
