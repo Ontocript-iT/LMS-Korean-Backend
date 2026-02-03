@@ -49,13 +49,13 @@ public class OtpServiceImpl implements OtpService {
         OtpData otpData = new OtpData(otp, LocalDateTime.now().plusMinutes(OTP_VALIDITY_MINUTES));
         otpStorage.put(mobileNumber, otpData);
 
-        String message = "Your OTP for LMS Login is: " + otp + ". Valid for 5 minutes.";
+        String message = "Kandy EPS Topik ලියාපදිංචිය සඳහා OTP අංකය: " + otp + ". මෙය විනාඩි 5ක් වලංගුයි.";
 
         // Run in background thread to not block response
         new Thread(() -> smsService.sendSms(mobileNumber, message)).start();
 
         return ResponseEntity.ok(Map.of(
-                "message", "OTP sent successfully",
+                "message", "OTP සාර්ථකව යවන ලදී.",
                 "status", HttpStatus.OK.value()
         ));
     }
@@ -66,7 +66,7 @@ public class OtpServiceImpl implements OtpService {
 
         if (!otpStorage.containsKey(mobileNumber)) {
             return ResponseEntity.status(400).body(Map.of(
-                    "message", "Invalid or Expired OTP",
+                    "message", "OTP අංකය වැරදියි හෝ කල් ඉකුත් වී ඇත.",
                     "status", HttpStatus.UNAUTHORIZED.value()
             ));
         }
@@ -76,7 +76,7 @@ public class OtpServiceImpl implements OtpService {
         if (LocalDateTime.now().isAfter(data.getExpiryTime())) {
             otpStorage.remove(mobileNumber); // Clean up
             return ResponseEntity.status(400).body(Map.of(
-                    "message", "Invalid or Expired OTP",
+                    "message", "OTP අංකය වැරදියි හෝ කල් ඉකුත් වී ඇත.",
                     "status", HttpStatus.UNAUTHORIZED.value()
             ));
         }
@@ -84,13 +84,13 @@ public class OtpServiceImpl implements OtpService {
         if (data.getOtp().equals(inputOtp)) {
             otpStorage.remove(mobileNumber); // Security: Remove OTP after successful use
             return ResponseEntity.ok(Map.of(
-                    "message", "OTP Verified Successfully",
+                    "message", "OTP අංකය සාර්ථකව තහවුරු විය!",
                     "status", HttpStatus.OK.value()
             ));
         }
 
         return ResponseEntity.status(400).body(Map.of(
-                "message", "Invalid or Expired OTP",
+                "message", "OTP අංකය වැරදියි හෝ කල් ඉකුත් වී ඇත.",
                 "status", HttpStatus.UNAUTHORIZED.value()
         ));
     }

@@ -18,4 +18,8 @@ public interface AdminService {
     ResponseEntity<?> suspendOrActiveStudent(String studentId);
 
     ResponseEntity<?> getSuspendedStudents(Pageable pageable);
+
+    ResponseEntity<?> clearAndResetFullSystem(String otp);
+
+    ResponseEntity<?> initiateSystemReset();
 }
