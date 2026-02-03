@@ -220,7 +220,7 @@ public class AuthServiceImpl implements AuthService {
                                         studentName, deviceType);
 
                                 String teacherMsg = String.format(
-                                        "Admin Alert: %s (%s) සිසුවා නව උපාංගයක් (%s) මගින් පද්ධතියට පිවිස ඇත. අවසරයකින් තොරව ගිණුම හුවමාරු කරගැනීමක් සිදුවන්නේදැයි කරුණාකර විමර්ශනය කරන්න",
+                                        "Admin Alert: %s (%s) නව උපාංගයක් (%s) මගින් පද්ධතියට පිවිස ඇත. අවසරයකින් තොරව ගිණුම හුවමාරු කරගැනීමක් සිදුවන්නේදැයි කරුණාකර විමර්ශනය කරන්න",
                                         studentName, studentId, deviceType);
 
                                 //Send SMS Asynchronously (Both messages in one thread)
