@@ -61,4 +61,15 @@ public class AdminController {
         return adminService.getSuspendedStudents(pageable);
     }
 
+    @PostMapping("/clearAndResetFullSystem")
+    public ResponseEntity<?> clearAndResetFullSystem(@RequestParam String otp) {
+        return adminService.clearAndResetFullSystem(otp);
+    }
+
+    @PostMapping("/initiate-system-reset")
+
+    public ResponseEntity<?> initiateSystemReset() {
+        return adminService.initiateSystemReset();
+    }
+
 }

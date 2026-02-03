@@ -36,4 +36,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByStatusAndRole(AccountStatus active, Role student);
 
     boolean existsByPhoneNumber1(String email);
+
+    void deleteAllByRoleNot(Role admin);
+
+    List<User> findAllByRoleNot(Role admin);
 }

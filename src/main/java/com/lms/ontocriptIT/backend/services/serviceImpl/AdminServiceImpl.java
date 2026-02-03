@@ -3,10 +3,7 @@ package com.lms.ontocriptIT.backend.services.serviceImpl;
 import com.lms.ontocriptIT.backend.auth.RegistrationRequest;
 import com.lms.ontocriptIT.backend.dtos.ApproveRegistrationDTO;
 import com.lms.ontocriptIT.backend.dtos.StudentDTO;
-import com.lms.ontocriptIT.backend.entity.AccountStatus;
-import com.lms.ontocriptIT.backend.entity.RequestStatus;
-import com.lms.ontocriptIT.backend.entity.Role;
-import com.lms.ontocriptIT.backend.entity.User;
+import com.lms.ontocriptIT.backend.entity.*;
 import com.lms.ontocriptIT.backend.repository.*;
 import com.lms.ontocriptIT.backend.services.SmsService;
 import com.lms.ontocriptIT.backend.services.centralServices.AdminService;
@@ -37,7 +34,27 @@ public class AdminServiceImpl implements AdminService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    private final PreviousBatchUserRepository previousBatchUserRepository;
+
+    private final VideoRepository videoRepository;
+
+    private final VideoAccessRepository videoAccessRepository;
+
+    private final LoginHistoryRepository loginHistoryRepository;
+
+    private final PaymentRepository paymentRepository;
+
+    private final ClassAccessRepository classAccessRepository;
+
+    private final VideoWatchLogRepository videoWatchLogRepository;
+
+    private final ZoomClassRepository zoomClassRepository;
+
     private final SmsService smsService;
+
+    // Temporary storage for the OTP (In a real app, use Redis or Database with expiry)
+    private static final Map<String, String> systemResetOtpStorage = new HashMap<>();
+    private static final String ADMIN_PHONE_NUMBER = "94705753003"; // The number receiving the OTP
 
 
     @Override
@@ -409,6 +426,105 @@ public class AdminServiceImpl implements AdminService {
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Failed to retrieve suspended students: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<?> clearAndResetFullSystem(String otp) {
+        try {
+            String storedOtp = systemResetOtpStorage.get("ADMIN_RESET_KEY");
+
+            if (storedOtp == null || !storedOtp.equals(otp)) {
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("message", "OTP අංකය වැරදියි හෝ කල් ඉකුත් වී ඇත. (Invalid or Expired OTP)");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+            List<User> usersToArchive = userRepository.findAllByRoleNot(Role.ADMIN);
+
+            List<PreviousBatchUser> archiveList = usersToArchive.stream().map(user ->
+                    PreviousBatchUser.builder()
+                            .originalUserId(user.getId())
+                            .studentId(user.getStudentId())
+                            .firstName(user.getFirstName())
+                            .lastName(user.getLastName())
+                            .district(user.getDistrict())
+                            .idNumber(user.getIdNumber())
+                            .email(user.getEmail())
+                            .phoneNumber1(user.getPhoneNumber1())
+                            .phoneNumber2(user.getPhoneNumber2())
+                            .password(user.getPassword())
+                            .role(user.getRole())
+                            .originalCreatedAt(user.getCreatedAt())
+                            .build()
+            ).collect(Collectors.toList());
+
+            if (!archiveList.isEmpty()) {
+                previousBatchUserRepository.saveAll(archiveList);
+            }
+
+            zoomClassRepository.deleteAll();
+            videoWatchLogRepository.deleteAll();
+            videoRepository.deleteAll();
+            videoAccessRepository.deleteAll();
+            loginHistoryRepository.deleteAll();
+            paymentRepository.deleteAll();
+            classAccessRepository.deleteAll();
+
+            userRepository.deleteAllByRoleNot(Role.ADMIN);
+
+            registrationRequestRepository.deleteAll();
+
+            systemResetOtpStorage.remove("ADMIN_RESET_KEY");
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "පද්ධතියේ දත්ත සියල්ල සාර්ථකව ඉවත් කරන ලදී (System cleared and reset successfully)");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to clear and reset system: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> initiateSystemReset() {
+        try {
+            // 1. Generate a 6-digit Random OTP
+            String otp = String.valueOf((int) (Math.random() * 900000) + 100000);
+
+            // 2. Store it temporarily (Key can be fixed for single admin system)
+            systemResetOtpStorage.put("ADMIN_RESET_KEY", otp);
+
+            // 3. Prepare Sinhala SMS Message
+            String smsMessage = "System Reset Alert: පද්ධතියේ සියලු දත්ත මකා දැමීමට (Reset) OTP අංකය: " + otp + ". මෙය ඔබ විසින් ඉල්ලා සිටියේ නැත්නම් මෙම පණිවිඩය නොසලකා හරින්න.";
+
+            // 4. Send SMS (using a new Thread to avoid blocking)
+            new Thread(() -> {
+                try {
+                    smsService.sendSms(ADMIN_PHONE_NUMBER, smsMessage);
+                } catch (Exception e) {
+                    System.err.println("Failed to send Admin OTP: " + e.getMessage());
+                }
+            }).start();
+
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "OTP අංකය " + ADMIN_PHONE_NUMBER + " වෙත යවන ලදී. කරුණාකර තහවුරු කරන්න."); // OTP sent successfully
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "OTP යැවීම අසාර්ථකයි: " + e.getMessage());
             response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
