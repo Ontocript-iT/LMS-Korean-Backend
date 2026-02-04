@@ -36,6 +36,8 @@ public class VideoServiceImpl implements VideoService {
     private final UserRepository userRepository;
     private final BunnyStreamService bunnyStreamService;
 
+    private final PaymentRepository paymentRepository;
+
     @Value("${bunny.stream.max-videos-per-month}")
     private int maxVideosPerMonth;
 
@@ -52,7 +54,6 @@ public class VideoServiceImpl implements VideoService {
 
             YearMonth currentMonth = YearMonth.now();
 
-            // Check monthly upload limit
             long videoCount = videoRepository.countActiveVideosByMonth(currentMonth);
             if (videoCount >= maxVideosPerMonth) {
                 HashMap<String, Object> response = new HashMap<>();
@@ -65,7 +66,6 @@ public class VideoServiceImpl implements VideoService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            // Validate file
             if (file.isEmpty()) {
                 HashMap<String, Object> response = new HashMap<>();
                 response.put("message", "Video file is required");
@@ -74,7 +74,6 @@ public class VideoServiceImpl implements VideoService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            // Validate file type
             String contentType = file.getContentType();
             if (contentType == null || !contentType.startsWith("video/")) {
                 HashMap<String, Object> response = new HashMap<>();
@@ -85,7 +84,6 @@ public class VideoServiceImpl implements VideoService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            // Validate file size (max 1GB)
             long maxFileSize = 5L * 1024 * 1024 * 1024; // 5 GB in bytes
 
             if (file.getSize() > maxFileSize) {
@@ -101,26 +99,20 @@ public class VideoServiceImpl implements VideoService {
 
             tempFile = File.createTempFile("video_upload_temp", ".mp4");
 
-            // 2. Copy the MultipartFile stream to the temp file
             Files.copy(file.getInputStream(), tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-            // 3. Extract duration using IsoFile
             long durationInSeconds = 0;
 
-            // FIX: Pass tempFile.getAbsolutePath() instead of tempFile
             try (IsoFile isoFile = new IsoFile(tempFile.getAbsolutePath())) {
                 MovieBox movieBox = isoFile.getMovieBox();
                 long duration = movieBox.getMovieHeaderBox().getDuration();
                 long timescale = movieBox.getMovieHeaderBox().getTimescale();
 
-                // Calculate seconds
                 durationInSeconds = duration / timescale;
             }
 
-            // 4. Print the duration (SOUT)
             System.out.println("Video Duration: " + durationInSeconds + " seconds");
-
-            // Upload to Bunny.net
+            
             Map<String, String> uploadResult = bunnyStreamService.uploadVideoFile(title, file);
 
             String bunnyVideoId = uploadResult.get("videoId");
@@ -335,93 +327,111 @@ public class VideoServiceImpl implements VideoService {
     @Transactional
     public ResponseEntity<?> grantVideoAccess(VideoAccessDTO dto, Long adminId) {
         try {
-            User student = userRepository.findById(dto.getStudentId())
-                    .orElseThrow(() -> new RuntimeException("Student not found"));
+            User admin = userRepository.findById(adminId)
+                    .orElseThrow(() -> new RuntimeException("Admin not found"));
 
             Video video = videoRepository.findById(dto.getVideoId())
                     .orElseThrow(() -> new RuntimeException("Video not found"));
 
-            User admin = userRepository.findById(adminId)
-                    .orElseThrow(() -> new RuntimeException("Admin not found"));
-
-            // Check if access already exists
-            VideoAccess existingAccess = videoAccessRepository
-                    .findByStudentAndVideo(student, video)
-                    .orElse(null);
-
-            if (existingAccess != null) {
-                // Update existing access
-                existingAccess.setHasAccess(dto.isHasAccess());
-                existingAccess.setAttemptsUsed(0);
-                existingAccess.setMaxAttempts(dto.getMaxAttempts() != null ? dto.getMaxAttempts() : 2);
-                existingAccess.setNotes(dto.getNotes());
-
-                if (dto.isHasAccess()) {
-                    existingAccess.setAccessGrantedDate(LocalDateTime.now());
-                    existingAccess.setGrantedBy(admin);
-                    existingAccess.setAccessRevokedDate(null);
-                    existingAccess.setRevokedBy(null);
-                }
-
-                VideoAccess savedAccess = videoAccessRepository.save(existingAccess);
-
-                HashMap<String, Object> response = new HashMap<>();
-                response.put("accessId", savedAccess.getId());
-                response.put("studentId", student.getId());
-                response.put("studentName", student.getFirstName() + " " + student.getLastName());
-                response.put("videoId", video.getId());
-                response.put("videoTitle", video.getTitle());
-                response.put("hasAccess", savedAccess.isHasAccess());
-                response.put("maxAttempts", savedAccess.getMaxAttempts());
-                response.put("grantedBy", admin.getFirstName() + " " + admin.getLastName());
-                response.put("message", "Video access updated successfully");
-                response.put("status", HttpStatus.OK.value());
-
-                return ResponseEntity.ok(response);
+            if (Boolean.TRUE.equals(dto.getIsBulkAccess())) {
+                return handleBulkAccess(dto, video, admin);
+            } else {
+                return handleSingleAccess(dto, video, admin);
             }
 
-            // Create new access
-            VideoAccess videoAccess = VideoAccess.builder()
+        } catch (RuntimeException e) {
+            return createErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return createErrorResponse("Failed to process request: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    private ResponseEntity<?> handleBulkAccess(VideoAccessDTO dto, Video video, User admin) {
+        YearMonth currentMonth = YearMonth.now();
+
+        List<User> eligibleStudents = paymentRepository.findStudentsByMonthAndStatus(
+                currentMonth, PaymentStatus.VERIFIED
+        );
+
+        if (eligibleStudents.isEmpty()) {
+            throw new RuntimeException("No students found with completed payments for " + currentMonth);
+        }
+
+        int successCount = 0;
+
+        for (User student : eligibleStudents) {
+            saveOrUpdateAccess(student, video, admin, dto);
+            successCount++;
+        }
+
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("message", "Bulk access granted successfully");
+        response.put("videoId", video.getId());
+        response.put("videoTitle", video.getTitle());
+        response.put("studentsAffected", successCount);
+        response.put("month", currentMonth.toString());
+        response.put("grantedBy", admin.getFirstName());
+        response.put("status", HttpStatus.OK.value());
+
+        return ResponseEntity.ok(response);
+    }
+
+    private ResponseEntity<?> handleSingleAccess(VideoAccessDTO dto, Video video, User admin) {
+        User student = userRepository.findById(dto.getStudentId())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        VideoAccess savedAccess = saveOrUpdateAccess(student, video, admin, dto);
+
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("accessId", savedAccess.getId());
+        response.put("studentId", student.getId());
+        response.put("studentName", student.getFirstName() + " " + student.getLastName());
+        response.put("videoId", video.getId());
+        response.put("hasAccess", savedAccess.isHasAccess());
+        response.put("message", "Video access updated successfully");
+        response.put("status", HttpStatus.OK.value());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // Common logic to Create or Update Access
+    private VideoAccess saveOrUpdateAccess(User student, Video video, User admin, VideoAccessDTO dto) {
+        VideoAccess access = videoAccessRepository
+                .findByStudentAndVideo(student, video)
+                .orElse(null);
+
+        if (access == null) {
+            // Create New
+            access = VideoAccess.builder()
                     .student(student)
                     .video(video)
-                    .hasAccess(dto.isHasAccess())
-                    .maxAttempts(dto.getMaxAttempts() != null ? dto.getMaxAttempts() : 2)
                     .attemptsUsed(0)
-                    .accessGrantedDate(dto.isHasAccess() ? LocalDateTime.now() : null)
-                    .grantedBy(dto.isHasAccess() ? admin : null)
-                    .notes(dto.getNotes())
                     .build();
-
-            VideoAccess savedAccess = videoAccessRepository.save(videoAccess);
-
-            HashMap<String, Object> response = new HashMap<>();
-            response.put("accessId", savedAccess.getId());
-            response.put("studentId", student.getId());
-            response.put("studentName", student.getFirstName() + " " + student.getLastName());
-            response.put("videoId", video.getId());
-            response.put("videoTitle", video.getTitle());
-            response.put("hasAccess", savedAccess.isHasAccess());
-            response.put("maxAttempts", savedAccess.getMaxAttempts());
-            response.put("grantedBy", admin.getFirstName() + " " + admin.getLastName());
-            response.put("message", "Video access granted successfully");
-            response.put("status", HttpStatus.CREATED.value());
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (RuntimeException e) {
-            HashMap<String, Object> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            response.put("status", HttpStatus.NOT_FOUND.value());
-
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-
-        } catch (Exception e) {
-            HashMap<String, Object> response = new HashMap<>();
-            response.put("message", "Failed to grant video access: " + e.getMessage());
-            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+
+        // Update fields (for both new and existing)
+        access.setHasAccess(dto.isHasAccess());
+        access.setMaxAttempts(dto.getMaxAttempts() != null ? dto.getMaxAttempts() : 2);
+        access.setNotes(dto.getNotes());
+
+        if (dto.isHasAccess()) {
+            access.setAccessGrantedDate(LocalDateTime.now());
+            access.setGrantedBy(admin);
+            access.setAccessRevokedDate(null);
+            access.setRevokedBy(null);
+            // Reset attempts on new grant? (Optional based on requirements)
+            // access.setAttemptsUsed(0);
+        }
+
+        return videoAccessRepository.save(access);
+    }
+
+    private ResponseEntity<HashMap<String, Object>> createErrorResponse(String message, HttpStatus status) {
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("message", message);
+        response.put("status", status.value());
+        return ResponseEntity.status(status).body(response);
     }
 
     @Override

@@ -9,7 +9,6 @@ import lombok.*;
 @Builder
 public class VideoAccessDTO {
 
-    @NotNull(message = "Student ID is required")
     private Long studentId;
 
     @NotNull(message = "Video ID is required")
@@ -21,4 +20,6 @@ public class VideoAccessDTO {
     private Integer maxAttempts; // Optional, defaults to 2
 
     private String notes;
+
+    private Boolean isBulkAccess;
 }
