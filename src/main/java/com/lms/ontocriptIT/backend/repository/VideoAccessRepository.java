@@ -22,8 +22,8 @@ public interface VideoAccessRepository extends JpaRepository<VideoAccess, Long> 
 
     List<VideoAccess> findByVideo(Video video);
 
-    @Query("SELECT va FROM VideoAccess va WHERE va.student.id = :studentId AND va.hasAccess = true AND va.attemptsUsed < va.maxAttempts")
-    List<VideoAccess> findAvailableVideosForStudent(Long studentId);
+    @Query("SELECT va FROM VideoAccess va WHERE va.student.id = :studentId AND va.hasAccess = true AND va.attemptsUsed < va.maxAttempts ORDER BY va.video.id DESC")
+    List<VideoAccess> findAvailableVideosForStudentDesc(Long studentId);
 
     @Query("SELECT va FROM VideoAccess va WHERE va.student.id = :studentId AND va.video.id = :videoId")
     Optional<VideoAccess> findByStudentIdAndVideoId(Long studentId, Long videoId);

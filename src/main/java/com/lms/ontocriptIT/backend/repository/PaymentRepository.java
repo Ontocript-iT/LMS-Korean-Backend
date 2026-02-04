@@ -64,4 +64,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     // Fixes findTop10ByOrderByCreatedAtDesc()
     List<Payment> findTop10ByOrderByCreatedAtDesc();
+
+    @Query("SELECT DISTINCT p.student FROM Payment p " +
+            "WHERE p.paymentMonth = :month AND p.status = :status")
+    List<User> findStudentsByMonthAndStatus(
+            @Param("month") YearMonth month,
+            @Param("status") PaymentStatus status
+    );
 }
