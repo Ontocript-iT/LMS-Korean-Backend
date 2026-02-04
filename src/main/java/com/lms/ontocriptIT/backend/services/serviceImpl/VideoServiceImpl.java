@@ -474,7 +474,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public ResponseEntity<?> getStudentVideos(Long studentId) {
         try {
-            List<VideoAccess> accesses = videoAccessRepository.findAvailableVideosForStudent(studentId);
+            List<VideoAccess> accesses = videoAccessRepository.findAvailableVideosForStudentDesc(studentId);
 
             List<VideoAccessResponseDTO> responseDTOs = accesses.stream()
                     .map(this::convertToAccessResponseDTO)
