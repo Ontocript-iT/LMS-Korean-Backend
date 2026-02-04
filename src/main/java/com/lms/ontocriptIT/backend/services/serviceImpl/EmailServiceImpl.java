@@ -190,11 +190,11 @@ public class EmailServiceImpl implements EmailService {
                 "        </div>" +
 
                 "        <p class='sinhala-text' style='font-size: 16px; color: #475569;'>Dear Student,</p>" +
-                "        <p class='sinhala-text' style='font-size: 15px; color: #475569;'>ඔබේ ගිණුම අපගේ <strong>ඉගෙනුම් කළමනාකරණ පද්ධතිය (LMS)</strong> තුළ සාර්ථකව නිර්මාණය කර ඇත. ඔබගේ පිවිසුම් තොරතුරු පහත දැක්වේ:</p>" +
+                "        <p class='sinhala-text' style='font-size: 15px; color: #475569;'>ඔබේ ගිණුම අපගේ <strong>ඉගෙනුම් කළමනාකරණ පද්ධතිය (Kandy EPS Topik LMS)</strong> තුළ සාර්ථකව නිර්මාණය කර ඇත. ඔබගේ පිවිසුම් තොරතුරු පහත දැක්වේ:</p>" +
 
                 "        <div class='credentials-wrapper'>" +
                 "            <div class='credential-row'>" +
-                "                <span class='label sinhala-text'>ශිෂ්‍ය හැඳුනුම්පත (Student ID)</span>" +
+                "                <span class='label sinhala-text'>ශිෂ්\u200Dය අංකය (Student ID)</span>" +
                 "                <span class='value'>" + studentId + "</span>" +
                 "            </div>" +
                 "            <div class='credential-row'>" +
