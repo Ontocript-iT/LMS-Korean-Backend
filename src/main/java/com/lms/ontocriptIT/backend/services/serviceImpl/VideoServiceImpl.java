@@ -112,7 +112,7 @@ public class VideoServiceImpl implements VideoService {
             }
 
             System.out.println("Video Duration: " + durationInSeconds + " seconds");
-            
+
             Map<String, String> uploadResult = bunnyStreamService.uploadVideoFile(title, file);
 
             String bunnyVideoId = uploadResult.get("videoId");
