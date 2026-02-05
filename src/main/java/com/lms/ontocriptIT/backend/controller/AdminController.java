@@ -72,4 +72,8 @@ public class AdminController {
         return adminService.initiateSystemReset();
     }
 
+    @DeleteMapping("/deleteRegistrationRequestBYPhoneNumber1OrEmail/{identifier}")
+    public ResponseEntity<?> deleteRegistrationRequestBYPhoneNumber1OrEmail(@PathVariable String identifier) {
+        return adminService.deleteRegistrationRequestBYPhoneNumber1OrEmail(identifier);
+    }
 }
