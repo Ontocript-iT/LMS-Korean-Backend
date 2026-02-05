@@ -22,4 +22,6 @@ public interface AdminService {
     ResponseEntity<?> clearAndResetFullSystem(String otp);
 
     ResponseEntity<?> initiateSystemReset();
+
+    ResponseEntity<?> deleteRegistrationRequestBYPhoneNumber1OrEmail(String identifier);
 }

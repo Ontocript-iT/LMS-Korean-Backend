@@ -530,4 +530,33 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> deleteRegistrationRequestBYPhoneNumber1OrEmail(String identifier) {
+        try {
+            List<RegistrationRequest> requestsToDelete = registrationRequestRepository
+                    .findByPhoneNumber1OrEmail(identifier, identifier);
+
+            if (requestsToDelete.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No registration requests found with the provided phone number or email.");
+                response.put("status", HttpStatus.NOT_FOUND.value());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            registrationRequestRepository.deleteAll(requestsToDelete);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Registration requests deleted successfully.");
+            response.put("deletedCount", requestsToDelete.size());
+            response.put("status", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Failed to delete registration requests: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
 }

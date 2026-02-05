@@ -20,4 +20,6 @@ public interface RegistrationRequestRepository extends JpaRepository<Registratio
     boolean existsByIdNumber(String idNumber);
 
     long countByStatus(RequestStatus pending);
+
+    List<RegistrationRequest> findByPhoneNumber1OrEmail(String identifier, String identifier1);
 }
