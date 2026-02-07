@@ -8,7 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 public interface VideoService {
-    ResponseEntity<?> uploadVideo(String title, String description, MultipartFile file, Long adminId);
+    ResponseEntity<?> uploadVideo(String title, String description, MultipartFile file, Long adminId,String groupName);
     ResponseEntity<?> getAllVideos();
     ResponseEntity<?> getActiveVideos();
     ResponseEntity<?> getVideoById(Long videoId);

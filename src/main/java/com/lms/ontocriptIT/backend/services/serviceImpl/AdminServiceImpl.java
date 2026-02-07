@@ -123,6 +123,7 @@ public class AdminServiceImpl implements AdminService {
                     .email(request.getEmail())
                     .phoneNumber1(request.getPhoneNumber1())
                     .phoneNumber2(request.getPhoneNumber2())
+                    .groupName(dto.getGroupName())
                     .password(passwordEncoder.encode(tempPassword))
                     .role(Role.STUDENT)
                     .status(AccountStatus.ACTIVE)
@@ -143,7 +144,7 @@ public class AdminServiceImpl implements AdminService {
                 if (mobile != null && !mobile.isEmpty()) {
                     // Construct message with Login Credentials
                     String smsMessage = String.format(
-                            "ලියාපදිංචිය අනුමත කරන ලදී! ඔබගේ පරිශීලක නාමය (Username) සහ තාවකාලික මුරපදය (Temporary Password) ඔබගේ විද්\u200Dයුත් තැපෑලට (Email) එවා ඇත. කරුණාකර එය භාවිතා කර පද්ධතියට ඇතුළු වී වහාම ඔබගේ මුරපදය වෙනස් කරන්න. — Kandy EPS TOPIK"
+                            "ලියාපදිංචිය අනුමත කරන ලදී! ඔබගේ පරිශීලක නාමය (Username) සහ තාවකාලික මුරපදය (Temporary Password) ඔබගේ විද්\u200Dයුත් තැපෑලට (Email) එවා ඇත. එහි සඳහන් ලින්ක් (Link) එකෙන් ගොස්, ඔබට ඔබේ තාවකාලික මුරපදය (temporary password) අවශ්\u200Dය නම් වෙනස් කරගත හැක.පන්තිවලට සම්බන්ධ වීම සඳහා මුදල් ගෙවූ රිසිට් පත පහත අංකයට WhatsApp කිරීම අනිවාර්ය වේ.අංකය: 0705753003 WhatsApp Link: https://wa.me/94705753003 — Kandy EPS TOPIK"
                     );
 
                     // Send in background thread
@@ -299,6 +300,7 @@ public class AdminServiceImpl implements AdminService {
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setEmail(user.getEmail());
+        dto.setGroupName(user.getGroupName());
         dto.setDistrict(user.getDistrict());
         dto.setPhoneNumber1(user.getPhoneNumber1());
         dto.setPhoneNumber2(user.getPhoneNumber2());
@@ -373,10 +375,32 @@ public class AdminServiceImpl implements AdminService {
             User user = userRepository.findByStudentId(studentId)
                     .orElseThrow(() -> new RuntimeException("Student not found with ID: " + studentId));
 
+            List<ClassAccess> classAccess = classAccessRepository.findByStudentId(user.getId());
+
+            VideoAccess videoAccess = videoAccessRepository.findByStudentId(user.getId());
+
             if (user.getStatus() == AccountStatus.ACTIVE) {
                 user.setStatus(AccountStatus.SUSPENDED);
+                classAccess.forEach(access -> {
+                    access.setHasAccess(false);
+                    classAccessRepository.save(access);
+                });
+                if (videoAccess != null) {
+                    videoAccess.setHasAccess(false);
+                    videoAccessRepository.save(videoAccess);
+                }
+
             } else {
                 user.setStatus(AccountStatus.ACTIVE);
+                classAccess.forEach(access -> {
+                    access.setHasAccess(true);
+                    classAccessRepository.save(access);
+                });
+
+                if (videoAccess != null) {
+                    videoAccess.setHasAccess(true);
+                    videoAccessRepository.save(videoAccess);
+                }
             }
 
             userRepository.save(user);
@@ -536,6 +560,9 @@ public class AdminServiceImpl implements AdminService {
             List<RegistrationRequest> requestsToDelete = registrationRequestRepository
                     .findByPhoneNumber1OrEmail(identifier, identifier);
 
+            User existingUser = userRepository.findByPhoneNumber1OrEmail(identifier,identifier)
+                    .orElse(null);
+
             if (requestsToDelete.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "No registration requests found with the provided phone number or email.");
@@ -544,6 +571,10 @@ public class AdminServiceImpl implements AdminService {
             }
 
             registrationRequestRepository.deleteAll(requestsToDelete);
+
+            if(existingUser != null){
+                userRepository.delete(existingUser);
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Registration requests deleted successfully.");

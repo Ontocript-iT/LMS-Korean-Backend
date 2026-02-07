@@ -7,4 +7,5 @@ import lombok.*;
 @AllArgsConstructor
 public class ApproveRegistrationDTO {
     private Long registrationRequestId;
+    private String groupName;
 }

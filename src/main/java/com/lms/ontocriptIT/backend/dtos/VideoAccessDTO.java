@@ -21,5 +21,7 @@ public class VideoAccessDTO {
 
     private String notes;
 
+    private String groupName;
+
     private Boolean isBulkAccess;
 }

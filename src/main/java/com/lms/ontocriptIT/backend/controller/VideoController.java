@@ -29,6 +29,7 @@ public class VideoController {
     public ResponseEntity<?> uploadVideo(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
+            @RequestParam("groupName") String groupName,
             @RequestParam(value = "description", required = false) String description,
             @AuthenticationPrincipal User admin) {
 
@@ -37,7 +38,7 @@ public class VideoController {
                     .body("Video file is required");
         }
 
-        return videoService.uploadVideo(title, description, file, admin.getId());
+        return videoService.uploadVideo(title, description, file, admin.getId(),groupName);
     }
 
     @GetMapping("/all")

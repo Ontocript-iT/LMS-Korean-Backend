@@ -18,6 +18,8 @@ public class StudentDTO {
     private String phoneNumber1;
     private String phoneNumber2;
     private String status;
+
+    private String groupName;
     private LocalDateTime createdAt;
     private int paymentCount;
     private int classAccessCount;

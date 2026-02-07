@@ -33,11 +33,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findTop10ByRoleOrderByCreatedAtDesc(Role role);
 
 
-    long countByStatusAndRole(AccountStatus active, Role student);
+    long countByStatusAndRoleAndGroupName(AccountStatus active, Role student, String groupName);
 
     boolean existsByPhoneNumber1(String email);
 
     void deleteAllByRoleNot(Role admin);
 
     List<User> findAllByRoleNot(Role admin);
+
+    Optional<User> findByPhoneNumber1OrEmail(String identifier, String identifier1);
 }
