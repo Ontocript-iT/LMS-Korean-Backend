@@ -47,6 +47,8 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String phoneNumber2;
 
+    private String groupName;
+
     @Column(nullable = false)
     private String password;
 

@@ -67,7 +67,7 @@ public class ClassAccessServiceImpl implements ClassAccessService {
 
             ClassAccess savedAccess = classAccessRepository.save(classAccess);
 
-            syncVideoAccess(student, admin, dto.isHasAccess(), dto.getClassName());
+//            syncVideoAccess(student, admin, dto.isHasAccess(), dto.getClassName());
 
             Map<String, Object> response = new HashMap<>();
             response.put("accessId", savedAccess.getId());

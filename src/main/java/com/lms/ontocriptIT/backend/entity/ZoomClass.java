@@ -27,6 +27,8 @@ public class ZoomClass {
     @Column(nullable = false)
     private String classTime;
 
+    private String groupName;
+
 
     @Column(columnDefinition = "TEXT")
     private String note;

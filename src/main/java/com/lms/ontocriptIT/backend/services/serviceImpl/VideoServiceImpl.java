@@ -46,7 +46,7 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     @Transactional
-    public ResponseEntity<?> uploadVideo(String title, String description, MultipartFile file, Long adminId) {
+    public ResponseEntity<?> uploadVideo(String title, String description, MultipartFile file, Long adminId,String groupName) {
         File tempFile = null;
         try {
             User admin = userRepository.findById(adminId)
@@ -128,6 +128,7 @@ public class VideoServiceImpl implements VideoService {
                     .videoUrl(videoUrl)
                     .thumbnailUrl(thumbnailUrl)
                     .uploadMonth(currentMonth)
+                    .groupName(groupName)
                     .duration((int) durationInSeconds)
                     .fileSizeBytes(file.getSize())
                     .originalFileName(file.getOriginalFilename())
@@ -350,8 +351,8 @@ public class VideoServiceImpl implements VideoService {
     private ResponseEntity<?> handleBulkAccess(VideoAccessDTO dto, Video video, User admin) {
         YearMonth currentMonth = YearMonth.now();
 
-        List<User> eligibleStudents = paymentRepository.findStudentsByMonthAndStatus(
-                currentMonth, PaymentStatus.VERIFIED
+        List<User> eligibleStudents = paymentRepository.findStudentsByMonthStatusAndGroup(
+                currentMonth, PaymentStatus.VERIFIED, dto.getGroupName()
         );
 
         if (eligibleStudents.isEmpty()) {
@@ -677,6 +678,7 @@ public class VideoServiceImpl implements VideoService {
                     .title(video.getTitle())
                     .description(video.getDescription())
                     .bunnyVideoId(video.getBunnyVideoId())
+                    .groupName(video.getGroupName())
                     .videoUrl(video.getVideoUrl())
                     .thumbnailUrl(video.getThumbnailUrl())
                     .uploadMonth(video.getUploadMonth())

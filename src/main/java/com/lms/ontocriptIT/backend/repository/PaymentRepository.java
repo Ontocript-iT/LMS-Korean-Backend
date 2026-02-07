@@ -66,9 +66,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findTop10ByOrderByCreatedAtDesc();
 
     @Query("SELECT DISTINCT p.student FROM Payment p " +
-            "WHERE p.paymentMonth = :month AND p.status = :status")
-    List<User> findStudentsByMonthAndStatus(
+            "JOIN p.student s " +  // 1. Join with the User table (aliased as 's')
+            "WHERE p.paymentMonth = :month " +
+            "AND p.status = :status " +
+            "AND s.groupName = :groupName") // 2. Filter by the student's group name
+    List<User> findStudentsByMonthStatusAndGroup(
             @Param("month") YearMonth month,
-            @Param("status") PaymentStatus status
+            @Param("status") PaymentStatus status,
+            @Param("groupName") String groupName // 3. Pass the group (e.g., "G1" or "G2")
     );
 }

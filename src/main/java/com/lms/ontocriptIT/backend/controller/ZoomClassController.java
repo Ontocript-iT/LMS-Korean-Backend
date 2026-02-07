@@ -43,6 +43,7 @@ public class ZoomClassController {
             existingClass.setNote(updatedClass.getNote());
             existingClass.setClassDate(updatedClass.getClassDate());
             existingClass.setZoomLink(updatedClass.getZoomLink());
+            existingClass.setGroupName(updatedClass.getGroupName());
             existingClass.setClassTime(updatedClass.getClassTime());
             zoomClassRepository.save(existingClass);
             HashMap<String,Object> response = new HashMap<>();

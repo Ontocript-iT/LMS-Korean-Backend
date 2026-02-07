@@ -14,6 +14,7 @@ public class VideoResponseDTO {
     private Long id;
     private String title;
     private String description;
+    private String groupName;
     private String bunnyVideoId;
     private String videoUrl;
     private String thumbnailUrl;

@@ -13,6 +13,9 @@ public class AdminDashboardDTO {
     // Summary Counters
     private long totalStudents;
     private long activeStudents;
+
+    private long activeStudentsG1;
+    private long activeStudentsG2;
     private long pendingStudents;
     private long totalVideos;
     private long totalZoomClasses;

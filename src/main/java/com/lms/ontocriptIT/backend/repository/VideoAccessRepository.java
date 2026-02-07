@@ -34,5 +34,7 @@ public interface VideoAccessRepository extends JpaRepository<VideoAccess, Long> 
     @Query("DELETE FROM VideoAccess va WHERE va.video.id = :videoId")
     void deleteByVideoId(@Param("videoId") Long videoId);
 
+    VideoAccess findByStudentId(Long id);
+
 //    Optional<VideoAccess> findByUser_IdAndVideo_Id(Long userId, Long videoId);
 }

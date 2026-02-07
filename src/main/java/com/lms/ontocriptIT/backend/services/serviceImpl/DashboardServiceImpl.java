@@ -32,10 +32,13 @@ public class DashboardServiceImpl implements DashboardService {
         YearMonth currentMonth = YearMonth.now();
 
         long totalStudents = userRepository.countByRole(Role.STUDENT);
-        long activeStudents = userRepository.countByStatusAndRole(AccountStatus.ACTIVE,Role.STUDENT);
+        long activeStudentsG1 = userRepository.countByStatusAndRoleAndGroupName(AccountStatus.ACTIVE, Role.STUDENT, "G1");
+        long activeStudentsG2 = userRepository.countByStatusAndRoleAndGroupName(AccountStatus.ACTIVE, Role.STUDENT, "G2");
         long pendingStudents = registrationRequestRepository.countByStatus(RequestStatus.PENDING);
         long totalVideos = videoRepository.count();
         long totalZoom = zoomClassRepository.count();
+
+        long activeStudents = activeStudentsG1 + activeStudentsG2;
 
         BigDecimal totalRevenue = paymentRepository.sumAllVerifiedPayments();
         if (totalRevenue == null) totalRevenue = BigDecimal.ZERO;
@@ -75,6 +78,8 @@ public class DashboardServiceImpl implements DashboardService {
         return AdminDashboardDTO.builder()
                 .totalStudents(totalStudents)
                 .activeStudents(activeStudents)
+                .activeStudentsG1(activeStudentsG1)
+                .activeStudentsG2(activeStudentsG2)
                 .pendingStudents(pendingStudents)
                 .totalVideos(totalVideos)
                 .totalZoomClasses(totalZoom)

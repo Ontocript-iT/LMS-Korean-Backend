@@ -48,6 +48,8 @@ public class Video {
 
     private String originalFileName;  // ADD THIS FIELD
 
+    private String groupName;
+
     @Enumerated(EnumType.STRING)
     private VideoStatus status;
 
