@@ -70,8 +70,8 @@ public class PaymentController {
 
     @DeleteMapping("/{paymentId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deletePayment(@PathVariable Long paymentId) {
-        return paymentService.deletePayment(paymentId);
+    public ResponseEntity<?> deletePayment(@PathVariable Long paymentId,@RequestParam String otp) {
+        return paymentService.deletePayment(paymentId, otp);
     }
 
     @GetMapping("/getThisMonthPaymentCompleterStudents")
@@ -82,5 +82,10 @@ public class PaymentController {
         return paymentService.getThisMonthPaymentCompleterStudents(year,month,page,size);
     }
 
-//    @GetMapping("/filterStudentsBySelectedMonth/{year}/{month}")
+
+    @PostMapping("/request-delete-otp/{paymentId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> requestDeleteOtp(@PathVariable Long paymentId) {
+        return paymentService.requestDeleteOtp(paymentId);
+    }
 }

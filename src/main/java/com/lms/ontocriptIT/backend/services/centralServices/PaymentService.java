@@ -12,7 +12,9 @@ public interface PaymentService {
     ResponseEntity<?> getPaymentsByMonth(YearMonth month);
     ResponseEntity<?> getPaymentsByStatus(String status);
     ResponseEntity<?> getStudentPaymentSummary(Long studentId);
-    ResponseEntity<?> deletePayment(Long paymentId);
+    ResponseEntity<?> deletePayment(Long paymentId,String otp);
 
     ResponseEntity<?> getThisMonthPaymentCompleterStudents( Integer year, Integer month,int page,int size);
+
+    ResponseEntity<?> requestDeleteOtp(Long paymentId);
 }

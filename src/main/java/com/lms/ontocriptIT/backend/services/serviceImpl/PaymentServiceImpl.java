@@ -5,6 +5,7 @@ import com.lms.ontocriptIT.backend.dtos.PaymentResponseDTO;
 import com.lms.ontocriptIT.backend.dtos.StudentPaymentSummaryDTO;
 import com.lms.ontocriptIT.backend.entity.*;
 import com.lms.ontocriptIT.backend.repository.*;
+import com.lms.ontocriptIT.backend.services.SmsService;
 import com.lms.ontocriptIT.backend.services.centralServices.PaymentService;
 import com.lms.ontocriptIT.backend.utils.PaymentIdGenerator;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,9 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +34,10 @@ public class PaymentServiceImpl implements PaymentService {
     private final UserRepository userRepository;
     private final ClassAccessRepository classAccessRepository;
     private final PaymentIdGenerator paymentIdGenerator;
+
+    private final SmsService smsService;
+
+    private static final Map<Long, String> otpStorage = new ConcurrentHashMap<>();
 
     @Override
     @Transactional
@@ -349,24 +357,77 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    public ResponseEntity<?> requestDeleteOtp(Long paymentId) {
+        try {
+            if (!paymentRepository.existsById(paymentId)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("message", "Payment not found", "status", HttpStatus.NOT_FOUND.value()));
+            }
+
+            // 1. Generate a 6-digit OTP
+            String otp = String.format("%06d", new Random().nextInt(999999));
+
+            // 2. Store OTP against the Payment ID
+            otpStorage.put(paymentId, otp);
+
+            // 3. Send SMS (Using your provided logic)
+            // NOTE: Replace 'ADMIN_MOBILE_NUMBER' with the actual number of the admin performing the delete
+            String adminMobile = "0705753003"; // OR fetch from currently logged in user
+
+            new Thread(() -> {
+                try {
+                    String smsMessage = "Kandy EPS TOPIK: Payment ID " + paymentId +
+                            " ඉවත් කිරීමට ඔබගේ OTP අංකය: " + otp + " වේ. මෙම අංකය කාටවත් ලබා නොදෙන්න.";
+                    smsService.sendSms(adminMobile, smsMessage);
+                } catch (Exception e) {
+                    System.err.println("Failed to send OTP SMS: " + e.getMessage());
+                }
+            }).start();
+
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "OTP sent to registered mobile number");
+            response.put("paymentId", paymentId);
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error generating OTP", "error", e.getMessage()));
+        }
+    }
+
     @Override
     @Transactional
-    public ResponseEntity<?> deletePayment(Long paymentId) {
+    public ResponseEntity<?> deletePayment(Long paymentId,String otp) {
         try {
+            // 1. Check if Payment Exists
             if (!paymentRepository.existsById(paymentId)) {
                 HashMap<String, Object> response = new HashMap<>();
                 response.put("message", "Payment not found");
                 response.put("paymentId", paymentId);
                 response.put("status", HttpStatus.NOT_FOUND.value());
-
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
 
+            // 2. OTP VERIFICATION LOGIC
+            // Check if OTP exists for this payment ID and if it matches the input
+            if (!otpStorage.containsKey(paymentId) || !otpStorage.get(paymentId).equals(otp)) {
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("message", "Invalid or Expired OTP. Delete failed.");
+                response.put("status", HttpStatus.UNAUTHORIZED.value());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            // 3. Proceed with existing delete logic
             Payment payment = paymentRepository.findById(paymentId).get();
             String transactionId = payment.getTransactionId();
             String receiptNumber = payment.getReceiptNumber();
 
             paymentRepository.deleteById(paymentId);
+
+            // 4. Remove OTP from storage after successful deletion
+            otpStorage.remove(paymentId);
 
             HashMap<String, Object> response = new HashMap<>();
             response.put("paymentId", paymentId);
@@ -385,6 +446,47 @@ public class PaymentServiceImpl implements PaymentService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+//    @Override
+//    public ResponseEntity<?> requestDeleteOtp(Long paymentId) {
+//        try {
+//            if (!paymentRepository.existsById(paymentId)) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                        .body(Map.of("message", "Payment not found", "status", HttpStatus.NOT_FOUND.value()));
+//            }
+//
+//            // 1. Generate a 6-digit OTP
+//            String otp = String.format("%06d", new Random().nextInt(999999));
+//
+//            // 2. Store OTP against the Payment ID
+//            otpStorage.put(paymentId, otp);
+//
+//            // 3. Send SMS (Using your provided logic)
+//            // NOTE: Replace 'ADMIN_MOBILE_NUMBER' with the actual number of the admin performing the delete
+//            String adminMobile = "07XXXXXXXX"; // OR fetch from currently logged in user
+//
+//            new Thread(() -> {
+//                try {
+//                    String smsMessage = "Kandy EPS TOPIK: Payment ID " + paymentId +
+//                            " ඉවත් කිරීමට ඔබගේ OTP අංකය: " + otp + " වේ. මෙම අංකය කාටවත් ලබා නොදෙන්න.";
+//                    smsService.sendSms(adminMobile, smsMessage);
+//                } catch (Exception e) {
+//                    System.err.println("Failed to send OTP SMS: " + e.getMessage());
+//                }
+//            }).start();
+//
+//            HashMap<String, Object> response = new HashMap<>();
+//            response.put("message", "OTP sent to registered mobile number");
+//            response.put("paymentId", paymentId);
+//            response.put("status", HttpStatus.OK.value());
+//
+//            return ResponseEntity.ok(response);
+//
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of("message", "Error generating OTP", "error", e.getMessage()));
+//        }
+//    }
 
     @Override
     public ResponseEntity<?> getThisMonthPaymentCompleterStudents(Integer year, Integer month,int page,int size){
