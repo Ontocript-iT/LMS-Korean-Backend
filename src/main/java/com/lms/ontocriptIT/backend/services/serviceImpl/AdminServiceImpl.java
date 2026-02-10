@@ -557,20 +557,26 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public ResponseEntity<?> deleteRegistrationRequestBYPhoneNumber1OrEmail(String identifier) {
         try {
-            List<RegistrationRequest> requestsToDelete = registrationRequestRepository
+            RegistrationRequest requestsToDelete = registrationRequestRepository
                     .findByPhoneNumber1OrEmail(identifier, identifier);
 
             User existingUser = userRepository.findByPhoneNumber1OrEmail(identifier,identifier)
                     .orElse(null);
 
-            if (requestsToDelete.isEmpty()) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("message", "No registration requests found with the provided phone number or email.");
-                response.put("status", HttpStatus.NOT_FOUND.value());
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
+//            if (requestsToDelete == null && existingUser == null) {
+//                Map<String, Object> response = new HashMap<>();
+//                response.put("message", "No registration requests found with the provided phone number or email.");
+//                response.put("status", HttpStatus.NOT_FOUND.value());
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+//            }
+            videoWatchLogRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
+            videoAccessRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
+            paymentRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
+            loginHistoryRepository.deleteByUserId(existingUser != null ? existingUser.getId() : null);
+            classAccessRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
 
-            registrationRequestRepository.deleteAll(requestsToDelete);
+
+            registrationRequestRepository.delete(requestsToDelete);
 
             if(existingUser != null){
                 userRepository.delete(existingUser);
@@ -578,7 +584,6 @@ public class AdminServiceImpl implements AdminService {
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Registration requests deleted successfully.");
-            response.put("deletedCount", requestsToDelete.size());
             response.put("status", HttpStatus.OK.value());
             return ResponseEntity.ok(response);
 

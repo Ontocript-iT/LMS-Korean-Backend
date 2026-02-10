@@ -40,5 +40,7 @@ public interface ClassAccessRepository extends JpaRepository<ClassAccess, Long> 
     @Transactional
     @Query("DELETE FROM ClassAccess c WHERE c.zoomClassId = :zoomClassId")
     void deleteByZoomClassId(@Param("zoomClassId") Long zoomClassId);
+
+    void deleteByStudentId(Long aLong);
 }
 

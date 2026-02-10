@@ -51,4 +51,6 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
 
     Optional<LoginHistory> findTopByUserIdAndLoginSuccessfulOrderByLoginTimeDesc(Long userId, boolean loginSuccessful);
 
+
+    void deleteByUserId(Long aLong);
 }

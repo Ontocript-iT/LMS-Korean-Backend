@@ -75,4 +75,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("status") PaymentStatus status,
             @Param("groupName") String groupName // 3. Pass the group (e.g., "G1" or "G2")
     );
+
+    void deleteByStudentId(Long aLong);
 }
