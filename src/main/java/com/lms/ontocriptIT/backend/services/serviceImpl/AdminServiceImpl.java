@@ -555,6 +555,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional
     public ResponseEntity<?> deleteRegistrationRequestBYPhoneNumber1OrEmail(String identifier) {
         try {
             RegistrationRequest requestsToDelete = registrationRequestRepository
