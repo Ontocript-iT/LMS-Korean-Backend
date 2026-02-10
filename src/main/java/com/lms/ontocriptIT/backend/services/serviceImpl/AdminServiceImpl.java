@@ -558,42 +558,67 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ResponseEntity<?> deleteRegistrationRequestBYPhoneNumber1OrEmail(String identifier) {
         try {
+            // 1. Fetch the data (Use List to handle multiple requests safely, or Optional for single)
+            // Assuming findBy... returns a List based on your first message, or a single object.
+            // If it returns a single object, change List<> to RegistrationRequest and handle null.
             RegistrationRequest requestsToDelete = registrationRequestRepository
                     .findByPhoneNumber1OrEmail(identifier, identifier);
 
-            User existingUser = userRepository.findByPhoneNumber1OrEmail(identifier,identifier)
+            User existingUser = userRepository.findByPhoneNumber1OrEmail(identifier, identifier)
                     .orElse(null);
 
-//            if (requestsToDelete == null && existingUser == null) {
-//                Map<String, Object> response = new HashMap<>();
-//                response.put("message", "No registration requests found with the provided phone number or email.");
-//                response.put("status", HttpStatus.NOT_FOUND.value());
-//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-//            }
-            videoWatchLogRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
-            videoAccessRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
-            paymentRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
-            loginHistoryRepository.deleteByUserId(existingUser != null ? existingUser.getId() : null);
-            classAccessRepository.deleteByStudentId(existingUser != null ? existingUser.getId() : null);
+            // 2. Safe Check: Only fail if BOTH are missing
+            boolean requestsExist = (requestsToDelete != null);
+            boolean userExists = (existingUser != null);
 
+            if (!requestsExist && !userExists) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No registration requests or user found with the provided identifier.");
+                response.put("status", HttpStatus.NOT_FOUND.value());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
 
-            registrationRequestRepository.delete(requestsToDelete);
-//
-//            if(existingUser != null){
+            // 3. Delete User & Dependencies (ONLY if user exists)
+            if (userExists) {
+                Long userId = existingUser.getId();
+
+                // Wrappers to prevent null pointer exceptions if the ID is somehow null
+                if (userId != null) {
+                    // Ensure these method names match your Repository exactly!
+                    videoWatchLogRepository.deleteByStudentId(userId);
+                    videoAccessRepository.deleteByStudentId(userId);
+                    paymentRepository.deleteByStudentId(userId);
+
+                    // You mentioned changing this to deleteByUserId previously - verify this match!
+                    loginHistoryRepository.deleteByUserId(userId);
+
+                    classAccessRepository.deleteByStudentId(userId);
+                }
+
                 userRepository.delete(existingUser);
-//            }
+            }
 
+            // 4. Delete Registration Requests (ONLY if they exist)
+            if (requestsExist) {
+                registrationRequestRepository.delete(requestsToDelete);
+            }
+
+            // 5. Success Response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Registration requests deleted successfully.");
+            response.put("message", "Cleanup successful.");
+            response.put("userDeleted", userExists);
             response.put("status", HttpStatus.OK.value());
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            // Log the full error to your console so you can see it
+            e.printStackTrace();
+
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Failed to delete registration requests: " + e.getMessage());
+            response.put("message", "Failed to delete data: " + e.getMessage());
             response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
 }
