@@ -28,4 +28,6 @@ public interface VideoWatchLogRepository extends JpaRepository<VideoWatchLog, Lo
     @Transactional
     @Query("DELETE FROM VideoWatchLog log WHERE log.video.id = :videoId")
     void deleteByVideoId(@Param("videoId") Long videoId);
+
+    void deleteByStudentId(Long aLong);
 }

@@ -36,5 +36,7 @@ public interface VideoAccessRepository extends JpaRepository<VideoAccess, Long> 
 
     VideoAccess findByStudentId(Long id);
 
+    void deleteByStudentId(Long aLong);
+
 //    Optional<VideoAccess> findByUser_IdAndVideo_Id(Long userId, Long videoId);
 }
