@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.HashMap;
@@ -238,15 +239,25 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
+ import java.time.LocalDate;
+
     private String generateStudentId() {
         try {
-            String year = String.valueOf(Year.now().getValue());
+            LocalDate currentDate = LocalDate.now();
+
+            String prefix = "S";
+
+            String monthPart = currentDate.getMonth().name().substring(0, 2).toUpperCase();
+
+            String yearPart = String.format("%02d", currentDate.getYear() % 100);
+
             long count = userRepository.count() + 1;
-            return "STU" + year + String.format("%05d", count);
+            String sequencePart = String.format("%05d", count);
+
+            return prefix + monthPart + yearPart + sequencePart;
 
         } catch (Exception e) {
-            // Fallback to timestamp-based ID if count fails
-            return "STU" + Year.now().getValue() + System.currentTimeMillis() % 100000;
+            return "S" + System.currentTimeMillis();
         }
     }
 
@@ -558,16 +569,12 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ResponseEntity<?> deleteRegistrationRequestBYPhoneNumber1OrEmail(String identifier) {
         try {
-            // 1. Fetch the data (Use List to handle multiple requests safely, or Optional for single)
-            // Assuming findBy... returns a List based on your first message, or a single object.
-            // If it returns a single object, change List<> to RegistrationRequest and handle null.
             RegistrationRequest requestsToDelete = registrationRequestRepository
                     .findByPhoneNumber1OrEmail(identifier, identifier);
 
             User existingUser = userRepository.findByPhoneNumber1OrEmail(identifier, identifier)
                     .orElse(null);
 
-            // 2. Safe Check: Only fail if BOTH are missing
             boolean requestsExist = (requestsToDelete != null);
             boolean userExists = (existingUser != null);
 
@@ -578,18 +585,14 @@ public class AdminServiceImpl implements AdminService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
 
-            // 3. Delete User & Dependencies (ONLY if user exists)
             if (userExists) {
                 Long userId = existingUser.getId();
 
-                // Wrappers to prevent null pointer exceptions if the ID is somehow null
                 if (userId != null) {
-                    // Ensure these method names match your Repository exactly!
                     videoWatchLogRepository.deleteByStudentId(userId);
                     videoAccessRepository.deleteByStudentId(userId);
                     paymentRepository.deleteByStudentId(userId);
 
-                    // You mentioned changing this to deleteByUserId previously - verify this match!
                     loginHistoryRepository.deleteByUserId(userId);
 
                     classAccessRepository.deleteByStudentId(userId);
@@ -598,12 +601,10 @@ public class AdminServiceImpl implements AdminService {
                 userRepository.delete(existingUser);
             }
 
-            // 4. Delete Registration Requests (ONLY if they exist)
             if (requestsExist) {
                 registrationRequestRepository.delete(requestsToDelete);
             }
 
-            // 5. Success Response
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Cleanup successful.");
             response.put("userDeleted", userExists);
@@ -612,7 +613,6 @@ public class AdminServiceImpl implements AdminService {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            // Log the full error to your console so you can see it
             e.printStackTrace();
 
             Map<String, Object> response = new HashMap<>();
