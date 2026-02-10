@@ -578,10 +578,10 @@ public class AdminServiceImpl implements AdminService {
 
 
             registrationRequestRepository.delete(requestsToDelete);
-
-            if(existingUser != null){
+//
+//            if(existingUser != null){
                 userRepository.delete(existingUser);
-            }
+//            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Registration requests deleted successfully.");
