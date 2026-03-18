@@ -206,9 +206,7 @@ public class EmailServiceImpl implements EmailService {
                 "        <div class='hint-box'>" +
                 "            <p class='sinhala-text' style='margin: 0 0 10px 0;'><strong>💡 ඔබට පිවිසිය හැකි ක්‍රම:</strong></p>" +
                 "            <div class='sinhala-text' style='font-size: 13px;'>" +
-                "                • ශිෂ්‍ය හැඳුනුම්පත (Student ID)<br>" +
                 "                • විද්‍යුත් තැපැල් ලිපිනය (Email)<br>" +
-                "                • දුරකථන අංකය 01 (Phone Number 01)" +
                 "            </div>" +
                 "        </div>" +
 

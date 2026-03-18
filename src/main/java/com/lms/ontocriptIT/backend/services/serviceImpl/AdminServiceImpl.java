@@ -238,7 +238,7 @@ public class AdminServiceImpl implements AdminService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-    
+
 
     private String generateStudentId() {
         try {
