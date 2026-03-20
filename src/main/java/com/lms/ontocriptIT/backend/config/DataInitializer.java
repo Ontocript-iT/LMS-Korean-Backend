@@ -41,7 +41,10 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Default admin user created!");
         }
 
-        Optional<User> user=userRepository.findByEmail("admin@lms.com");
-        userRepository.delete(user.get());
+        Optional<User> user = userRepository.findByEmail("admin@lms.com");
+        user.ifPresent(u -> {
+            userRepository.delete(u);
+            System.out.println("Old admin user deleted!");
+        });
     }
 }
