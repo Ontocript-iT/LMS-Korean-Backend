@@ -9,6 +9,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
@@ -38,5 +40,8 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
             System.out.println("Default admin user created!");
         }
+
+        Optional<User> user=userRepository.findByEmail("admin@lms.com");
+        userRepository.delete(user.get());
     }
 }
