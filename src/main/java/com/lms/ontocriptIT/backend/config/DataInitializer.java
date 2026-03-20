@@ -29,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
                     .email("admin2@lms.com")
                     .phoneNumber1("0771134567")
                     .phoneNumber2("0771134568")
-                    .password(passwordEncoder.encode("admin123EpsD"))
+                    .password(passwordEncoder.encode("addffsfsdfsdfs@D"))
                     .role(Role.ADMIN)
                     .status(AccountStatus.ACTIVE)
                     .isTemporaryPassword(false)
