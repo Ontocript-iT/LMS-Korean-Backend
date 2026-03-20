@@ -19,17 +19,17 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // Create default admin if not exists
-        if (!userRepository.existsByEmail("admin@lms.com")) {
+        if (!userRepository.existsByEmail("admin1@lms.com")) {
             User admin = User.builder()
                     .studentId("ADMIN001")
                     .firstName("Admin")
                     .lastName("User")
                     .district("Colombo")
                     .idNumber("000000000V")
-                    .email("admin@lms.com")
+                    .email("admin1@lms.com")
                     .phoneNumber1("0771234567")
                     .phoneNumber2("0771234568")
-                    .password(passwordEncoder.encode("admin123"))
+                    .password(passwordEncoder.encode("admin123kEps"))
                     .role(Role.ADMIN)
                     .status(AccountStatus.ACTIVE)
                     .isTemporaryPassword(false)
