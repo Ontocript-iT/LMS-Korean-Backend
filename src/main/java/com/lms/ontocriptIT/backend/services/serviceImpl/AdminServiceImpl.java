@@ -145,7 +145,7 @@ public class AdminServiceImpl implements AdminService {
                 if (mobile != null && !mobile.isEmpty()) {
                     // Construct message with Login Credentials
                     String smsMessage = String.format(
-                            "ලියාපදිංචිය අනුමත කරන ලදී! ඔබගේ පරිශීලක නාමය (Username) සහ තාවකාලික මුරපදය (Temporary Password) ඔබගේ විද්\u200Dයුත් තැපෑලට (Email) එවා ඇත. එහි සඳහන් ලින්ක් (Link) එකෙන් ගොස්, ඔබට ඔබේ තාවකාලික මුරපදය (temporary password) අවශ්\u200Dය නම් වෙනස් කරගත හැක.පන්තිවලට සම්බන්ධ වීම සඳහා මුදල් ගෙවූ රිසිට් පත පහත අංකයට WhatsApp කිරීම අනිවාර්ය වේ.අංකය: 0705753003 WhatsApp Link: https://wa.me/94705753003 — Kandy EPS TOPIK"
+                            "ලියාපදිංචිය අනුමත කරන ලදී! ඔබගේ පරිශීලක නාමය (Username) සහ තාවකාලික මුරපදය (Temporary Password) ඔබගේ විද්\u200Dයුත් තැපෑලට (Email) එවා ඇත. එහි සඳහන් ලින්ක් (Link) එකෙන් ගොස්, ඔබට ඔබේ තාවකාලික මුරපදය (temporary password) අවශ්\u200Dය නම් වෙනස් කරගත හැක.පන්තිවලට සම්බන්ධ වීම සඳහා මුදල් ගෙවූ රිසිට් පත පහත අංකයට WhatsApp කිරීම අනිවාර්ය වේ.අංකය: 0766885020 WhatsApp Link: https://wa.me/94766885020 — Kandy EPS TOPIK"
                     );
 
                     // Send in background thread

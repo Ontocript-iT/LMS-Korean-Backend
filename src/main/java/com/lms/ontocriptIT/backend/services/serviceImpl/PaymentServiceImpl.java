@@ -372,7 +372,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             // 3. Send SMS (Using your provided logic)
             // NOTE: Replace 'ADMIN_MOBILE_NUMBER' with the actual number of the admin performing the delete
-            String adminMobile = "0705753003"; // OR fetch from currently logged in user
+            String adminMobile = "0766885020"; // OR fetch from currently logged in user
 
             new Thread(() -> {
                 try {
